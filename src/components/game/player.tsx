@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { parseLevel, run } from "@/engine/interpreter";
 import { addBlock, countBlocks, makeBlock, removeBlock, setTimes } from "@/engine/program";
 import type { Block, BlockType, FailReason, Level, RunResult } from "@/engine/types";
-import { saveStars } from "@/lib/progress";
+import { saveResult } from "@/lib/progress";
 import { Board } from "./board";
 import { blockLabel, ProgramEditor } from "./program-editor";
 
@@ -49,7 +49,7 @@ export function Player({ level, total }: Props) {
   useEffect(() => {
     if (finished && result?.status === "win" && !saved.current) {
       saved.current = true;
-      saveStars(level.level, level.challenge, result.stars);
+      void saveResult(level.level, level.challenge, result.stars, result.blocks);
     }
   }, [finished, result, level]);
 

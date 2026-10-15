@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { UserBar } from "@/components/brand/user-bar";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
 
@@ -11,6 +12,7 @@ export default function MapaPage() {
     <>
       <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-5">
         <Logo />
+        <UserBar />
       </header>
       <main className="mx-auto max-w-5xl px-4 pb-20">
         <h1 className="text-3xl font-extrabold">Mapa de aventura</h1>

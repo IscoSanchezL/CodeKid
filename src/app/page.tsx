@@ -17,10 +17,10 @@ export default function Home() {
         <Logo />
         <nav className="flex items-center gap-2">
           <ButtonLink href="/login" variant="ghost" size="sm">
-            Entrar
+            Docentes
           </ButtonLink>
-          <ButtonLink href="/registro" size="sm">
-            Crear cuenta
+          <ButtonLink href="/clase" size="sm">
+            Entrar con mi clase
           </ButtonLink>
         </nav>
       </header>
@@ -38,11 +38,11 @@ export default function Home() {
             logros y crea tus propios juegos.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/registro" size="lg">
-              Empezar gratis
+            <ButtonLink href="/clase" size="lg">
+              Entrar con mi clase
             </ButtonLink>
-            <ButtonLink href="/mapa" variant="outline" size="lg">
-              Ver el mapa
+            <ButtonLink href="/registro" variant="outline" size="lg">
+              Soy docente: crear cuenta
             </ButtonLink>
           </div>
         </section>

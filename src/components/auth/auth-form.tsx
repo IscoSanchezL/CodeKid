@@ -43,7 +43,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
             password: login?.data?.password ?? "",
           });
       if (authError) throw authError;
-      router.push("/mapa");
+      const { data: auth } = await supabase.auth.getUser();
+      const { data: profile } = auth.user
+        ? await supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle()
+        : { data: null };
+      const staff = profile?.role === "teacher" || profile?.role === "admin";
+      router.push(staff ? "/docente" : "/mapa");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo completar la operación");

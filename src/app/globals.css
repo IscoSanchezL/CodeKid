@@ -2,45 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens (RGB triplets) — claro por defecto, oscuro por preferencia o por data-theme */
+/* Tokens (tripletas RGB). Paleta tomada del logo: azul marino, cian y amarillo.
+   Claro por defecto; oscuro por preferencia del sistema o por data-theme. */
 :root {
-  --bg: 248 249 252;
+  --bg: 246 249 255;
   --surface: 255 255 255;
-  --surface-2: 241 243 249;
-  --fg: 20 24 40;
-  --muted: 100 108 133;
-  --border: 224 228 239;
-  --brand: 99 71 255;
+  --surface-2: 234 241 253;
+  --fg: 8 16 48;
+  --muted: 84 98 135;
+  --border: 217 226 244;
+  --brand: 31 99 240;
   --brand-fg: 255 255 255;
-  --accent: 255 138 76;
-  --success: 22 163 112;
-  --warn: 234 170 8;
-  --danger: 225 66 76;
+  --accent: 255 197 36;
+  --success: 16 150 104;
+  --warn: 255 197 36;
+  --danger: 220 55 70;
   --radius-lg: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: 12 14 24;
-    --surface: 21 24 38;
-    --surface-2: 30 34 52;
-    --fg: 238 241 250;
-    --muted: 150 158 184;
-    --border: 42 47 70;
-    --brand: 134 112 255;
-    --brand-fg: 12 14 24;
+    --bg: 5 11 42;
+    --surface: 12 21 64;
+    --surface-2: 19 32 88;
+    --fg: 236 242 255;
+    --muted: 143 160 205;
+    --border: 30 45 105;
+    --brand: 34 211 238;
+    --brand-fg: 5 11 42;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: 12 14 24;
-  --surface: 21 24 38;
-  --surface-2: 30 34 52;
-  --fg: 238 241 250;
-  --muted: 150 158 184;
-  --border: 42 47 70;
-  --brand: 134 112 255;
-  --brand-fg: 12 14 24;
+  --bg: 5 11 42;
+  --surface: 12 21 64;
+  --surface-2: 19 32 88;
+  --fg: 236 242 255;
+  --muted: 143 160 205;
+  --border: 30 45 105;
+  --brand: 34 211 238;
+  --brand-fg: 5 11 42;
 }
 
 /* Accesibilidad: alto contraste y fuente para dislexia (se activan por data-attrs) */

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
+import { UserBar } from "@/components/brand/user-bar";
 import { Player } from "@/components/game/player";
 import { challengesOf, CHALLENGES, getChallenge } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
@@ -25,9 +26,12 @@ export default function RetoPage({ params }: { params: Params }) {
     <>
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Logo href="/mapa" />
-        <p className="text-sm font-medium text-muted">
-          Nivel {level.level} · {meta?.title}
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="hidden text-sm font-medium text-muted sm:block">
+            Nivel {level.level} · {meta?.title}
+          </p>
+          <UserBar />
+        </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 pb-16">
         <h1 className="mb-1 text-2xl font-extrabold">

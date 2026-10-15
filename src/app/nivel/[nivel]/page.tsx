@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
+import { UserBar } from "@/components/brand/user-bar";
 import { StarsBadge } from "@/components/game/stars-badge";
 import { challengesOf, PLAYABLE_LEVELS } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
@@ -27,9 +28,12 @@ export default function NivelPage({ params }: { params: Params }) {
     <>
       <header className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
         <Logo href="/mapa" />
-        <Link href="/mapa" className="text-sm font-medium text-muted hover:text-fg">
-          ← Mapa
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/mapa" className="text-sm font-medium text-muted hover:text-fg">
+            ← Mapa
+          </Link>
+          <UserBar />
+        </div>
       </header>
       <main className="mx-auto max-w-4xl px-4 pb-16">
         <h1 className="text-3xl font-extrabold">

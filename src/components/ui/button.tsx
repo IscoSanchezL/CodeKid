@@ -12,7 +12,7 @@ export const buttonVariants = cva(
         secondary: "bg-surface-2 text-fg hover:bg-border/60",
         outline: "border border-border bg-surface text-fg hover:bg-surface-2",
         ghost: "text-fg hover:bg-surface-2",
-        accent: "bg-accent text-white hover:brightness-110",
+        accent: "bg-accent text-[rgb(8_16_48)] hover:brightness-110",
       },
       size: {
         sm: "h-9 px-3 text-sm",

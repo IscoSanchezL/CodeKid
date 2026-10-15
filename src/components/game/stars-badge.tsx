@@ -7,7 +7,13 @@ export function StarsBadge({ level, challenge }: { level: number; challenge: num
   const [stars, setStars] = useState(0);
 
   useEffect(() => {
-    setStars(loadProgress()[progressKey(level, challenge)] ?? 0);
+    let alive = true;
+    loadProgress().then((all) => {
+      if (alive) setStars(all[progressKey(level, challenge)] ?? 0);
+    });
+    return () => {
+      alive = false;
+    };
   }, [level, challenge]);
 
   return (
