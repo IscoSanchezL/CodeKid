@@ -193,11 +193,24 @@ export function run(level: Level, program: Block[]): RunResult {
   if (program.length === 0) failure = "empty";
   else exec(program);
 
-  const won = done && !failure;
+  let won = done && !failure;
   const coinsTotal = map.coins.size;
+
+  // Pruebas automáticas: el mismo programa debe ganar también en otros mapas
+  let tests: { passed: boolean }[] | undefined;
+  if (won && level.tests?.length) {
+    tests = level.tests.map((t) => ({
+      passed: run({ ...level, rows: t.rows, startDir: t.startDir ?? level.startDir, tests: undefined }, program).status === "win",
+    }));
+    if (tests.some((t) => !t.passed)) {
+      won = false;
+      failure = "tests";
+    }
+  }
   const stars = won ? ((1 + (blocks <= level.par ? 1 : 0) + (taken.size === coinsTotal ? 1 : 0)) as 1 | 2 | 3) : 0;
 
   return {
+    tests,
     snapshots,
     status: won ? "win" : "fail",
     reason: won ? undefined : (failure ?? "not-at-goal"),

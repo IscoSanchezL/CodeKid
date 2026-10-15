@@ -75,6 +75,12 @@ export type Level = {
   par: number;
   /** Solución de referencia, la usan los tests para validar el nivel */
   solution: Block[];
+  /** «blocks» (por defecto): se arma con bloques. «code»: el alumno escribe JavaScript o Python. */
+  mode?: "blocks" | "code";
+  /** Código inicial del editor (retos de código). */
+  starter?: { js: string; python: string };
+  /** Pruebas automáticas: otros mapas en los que el mismo programa también debe ganar. */
+  tests?: { rows: string[]; startDir?: Dir }[];
 };
 
 export type Snapshot = {
@@ -87,7 +93,7 @@ export type Snapshot = {
   bump: boolean;
 };
 
-export type FailReason = "wall" | "step-limit" | "not-at-goal" | "empty";
+export type FailReason = "wall" | "step-limit" | "not-at-goal" | "empty" | "tests";
 
 export type RunResult = {
   snapshots: Snapshot[];
@@ -98,4 +104,6 @@ export type RunResult = {
   blocks: number;
   /** 0 si no ganó; 1 por ganar, +1 por usar ≤ par bloques, +1 por todas las monedas */
   stars: 0 | 1 | 2 | 3;
+  /** Resultado de cada prueba automática (solo si el reto las tiene y el mapa principal se ganó). */
+  tests?: { passed: boolean }[];
 };

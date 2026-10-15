@@ -53,6 +53,8 @@ type Ctx = {
   onRemove: (id: string) => void;
   onTimes: (id: string, times: number) => void;
   onParam: (id: string, patch: Record<string, unknown>) => void;
+  /** Con muchos bloques se achican para que el programa entero quepa en pantalla. */
+  compact: boolean;
 };
 const WorkspaceCtx = createContext<Ctx | null>(null);
 const useWs = () => {
@@ -170,6 +172,7 @@ export function Workspace({
     },
     onTimes: (id, n) => onChange(setTimes(program, id, n)),
     onParam: (id, patch) => onChange(setParams(program, id, patch)),
+    compact: countBlocks(program) > 10,
   };
 
   return (
@@ -189,7 +192,7 @@ export function Workspace({
           used={countBlocks(program)}
         />
 
-        <Card className="plank min-h-48 p-4">
+        <Card className="plank min-h-48 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           <h2 className="mb-3 flex items-center justify-between font-bold">
             Mi programa
             {program.length > 0 && editing && (
@@ -258,7 +261,7 @@ function Palette({
   return (
     <Card
       className={cn(
-        "p-4 transition-shadow",
+        "shrink-0 p-4 transition-shadow",
         deleting && "ring-2 ring-danger/60",
         deleting && isOver && "bg-danger/10 ring-4 ring-danger",
       )}
@@ -333,7 +336,7 @@ function Slot({
   index: number;
   empty?: string;
 }) {
-  const { drag, editing } = useWs();
+  const { drag, editing, compact } = useWs();
   const blocked =
     drag?.kind === "block" &&
     containerId !== null &&
@@ -351,7 +354,7 @@ function Slot({
       aria-hidden
       className={cn(
         "flex list-none items-center justify-center rounded-lg text-center text-xs font-semibold transition-colors",
-        empty ? "min-h-16 border-2 border-dashed p-3" : "h-3",
+        empty ? "min-h-16 border-2 border-dashed p-3" : compact ? "h-1" : "h-3",
         live && !empty && "border-2 border-dashed border-[#0b1440]/30",
         empty && !live && "border-[#0b1440]/35 text-[#0b1440]/70",
         live && "border-[#0b1440]/40",
@@ -407,7 +410,8 @@ function BlockRow({ block }: { block: Block }) {
     >
       <div
         className={cn(
-          "flex items-center gap-2 block-chip rounded-xl px-3 py-2 font-semibold transition-all",
+          "flex items-center gap-2 block-chip rounded-xl px-3 font-semibold transition-all",
+          ctx.compact ? "py-1 text-sm" : "py-2",
           l.color,
           running && "scale-[1.03] ring-4 ring-fg/30",
         )}

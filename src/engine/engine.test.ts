@@ -36,7 +36,7 @@ describe("niveles de referencia", () => {
 
 describe("condicionales", () => {
   it("«si» solo está permitido desde el nivel 3", () => {
-    for (const c of CHALLENGES) expect(c.allowed.includes("if")).toBe(c.level === 3 || c.level === 7);
+    for (const c of CHALLENGES) expect(c.allowed.includes("if")).toBe(c.level === 3 || c.level >= 7);
   });
 
   it("ejecuta el cuerpo solo si se cumple la condición", () => {
@@ -63,6 +63,23 @@ describe("condicionales", () => {
     for (let i = 0; i < 6; i++) p = empty(9, [p]);
     const r = run(base, [p]);
     expect(r.reason).toBe("step-limit");
+  });
+});
+
+describe("pruebas automáticas", () => {
+  const c = CHALLENGES.find((x) => x.level === 9 && x.challenge === 1) as Level;
+
+  it("un programa hecho solo para el mapa principal falla las otras pruebas", () => {
+    const r = run(c, [{ id: "r", type: "repeat", times: 9, body: [makeBlock("move")] }]);
+    expect(r.status).toBe("fail");
+    expect(r.reason).toBe("tests");
+    expect(r.tests?.some((t) => !t.passed)).toBe(true);
+  });
+
+  it("el programa general pasa todas", () => {
+    const r = run(c, c.solution);
+    expect(r.status).toBe("win");
+    expect(r.tests?.every((t) => t.passed)).toBe(true);
   });
 });
 

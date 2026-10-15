@@ -29,6 +29,10 @@ const FUNCS: Level["allowed"] = ["move", "left", "right", "def", "call"];
 const VARS: Level["allowed"] = ["move", "left", "right", "repeat", "setvar", "addvar", "movevar"];
 const LISTS: Level["allowed"] = ["move", "left", "right", "repeat", "list", "foreach", "turnitem"];
 const WHILES: Level["allowed"] = ["move", "left", "right", "if", "while"];
+/** Retos de código: el programa se escribe en texto y puede usar cualquier bloque. */
+const ALL: Level["allowed"] = ["move", "left", "right", "repeat", "if", "while", "def", "call", "setvar", "addvar", "movevar", "list", "foreach", "turnitem"];
+/** Recorre un camino de un solo carril: avanza mientras haya camino y gira; para cuando la meta está delante. */
+const follow = (...turns: Block[]): Block => whileC("goal", true, whileC("free", false, move()), ...turns);
 
 export const CHALLENGES: Level[] = [
   // ── Nivel 1 · Secuencias ───────────────────────────────────────────────
@@ -253,6 +257,127 @@ export const CHALLENGES: Level[] = [
     hint: "Usa el mismo método del reto anterior. Con él se resuelve cualquier camino de un solo carril.",
     rows: ["###..*######", "###.#.######", "###.#.##...G", "S..*#.##.###", "#####..*.###"],
     solution: [whileC("goal", true, whileC("free", false, move()), right(), ifC("wall", false, left(), left()))],
+  },
+
+  // ── Nivel 8 · De bloques a texto (arregla el código)
+  {
+    level: 8, challenge: 1, title: "Completa el código", par: 5, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Falta recorrer dos casillas más al final: añade dos avanzar().",
+    rows: ["S..", "##.", "##G"],
+    solution: [move(), move(), right(), move(), move()],
+    starter: { js: "// El robot debe llegar a la bandera\navanzar();\navanzar();\ngirarDerecha();\n// ¿Qué falta aquí?\n", python: "# El robot debe llegar a la bandera\navanzar()\navanzar()\ngirar_derecha()\n# ¿Qué falta aquí?\n" },
+  },
+  {
+    level: 8, challenge: 2, title: "Cuenta las vueltas", par: 2, startDir: 1, allowed: ALL, mode: "code",
+    hint: "El bucle repite pocas veces. Cuenta las casillas hasta la bandera y cambia el número.",
+    rows: ["S....G"],
+    solution: [repeat(5, move())],
+    starter: { js: "for (let i = 0; i < 2; i++) {\n  avanzar();\n}\n", python: "for _ in range(2):\n    avanzar()\n" },
+  },
+  {
+    level: 8, challenge: 3, title: "Una letra mal escrita", par: 5, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Hay dos nombres mal escritos. El mensaje de error te dice cuál es la línea.",
+    rows: ["S.##", "#..#", "##..", "###G"],
+    solution: [repeat(3, move(), right(), move(), left())],
+    starter: { js: "for (let i = 0; i < 3; i++) {\n  avansar();\n  girarDerecha();\n  avanzar();\n  girarIzquerda();\n}\n", python: "for _ in range(3):\n    avansar()\n    girar_derecha()\n    avanzar()\n    girar_izquerda()\n" },
+  },
+  {
+    level: 8, challenge: 4, title: "Tu propio bloque", par: 9, startDir: 1, allowed: ALL, mode: "code",
+    hint: "El bloque A ya está creado; falta usarlo cuatro veces: bloqueA();",
+    rows: ["S.###", "#..##", "##..#", "###..", "####G"],
+    solution: [def("A", move(), right(), move(), left()), call("A"), call("A"), call("A"), call("A")],
+    starter: { js: "function bloqueA() {\n  avanzar();\n  girarDerecha();\n  avanzar();\n  girarIzquierda();\n}\n// Falta usar el bloque\n", python: "def bloque_a():\n    avanzar()\n    girar_derecha()\n    avanzar()\n    girar_izquierda()\n# Falta usar el bloque\n" },
+  },
+  {
+    level: 8, challenge: 5, title: "¿Pared o camino?", par: 4, startDir: 1, allowed: ALL, mode: "code",
+    hint: "El bucle de dentro debe avanzar mientras haya camino libre, no mientras haya pared.",
+    rows: ["S.....", "#G###.", "#.###.", "#....."],
+    solution: [whileC("goal", true, whileC("free", false, move()), right())],
+    starter: { js: "while (!esLaMeta()) {\n  while (hayPared()) {\n    avanzar();\n  }\n  girarDerecha();\n}\n", python: "while not es_la_meta():\n    while hay_pared():\n        avanzar()\n    girar_derecha()\n" },
+  },
+
+  // ── Nivel 9 · JavaScript y Python (escribe tu código; pruebas automáticas)
+  {
+    level: 9, challenge: 1, title: "Hasta el final", par: 2, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Tu programa se prueba también en pasillos más cortos y más largos. No cuentes casillas: usa while.",
+    rows: ["S........G"],
+    solution: [whileC("free", false, move())],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["S...G"] }, { rows: ["S............G"] }],
+  },
+  {
+    level: 9, challenge: 2, title: "La esquina", par: 4, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Avanza mientras haya camino y gira a la derecha, hasta que la meta esté delante.",
+    rows: ["S....", "####.", "####.", "####G"],
+    solution: [follow(right())],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["S..", "##.", "##.", "##.", "##.", "##G"] }, { rows: ["S......", "######.", "######G"] }],
+  },
+  {
+    level: 9, challenge: 3, title: "Monedas por el camino", par: 4, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Ahora los giros son a la izquierda. Las monedas se recogen al pasar.",
+    rows: ["#G..", "###.", "###*", "###.", "S.*."],
+    solution: [follow(left())],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["##G...", "#####.", "S....."] }, { rows: ["G..", "##.", "##.", "##.", "##.", "##.", "S.."] }],
+  },
+  {
+    level: 9, challenge: 4, title: "Sin saber hacia dónde", par: 7, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Gira a la derecha; si hay pared delante, gira dos veces a la izquierda.",
+    rows: ["S....##....", "####.##.##.", "####....##G"],
+    solution: [follow(right(), ifC("wall", false, left(), left()))],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["###.....", "###.###.", "###.###G", "S...####"] }, { rows: ["S.....", "#####.", "##....", "##.###", "##G###"] }],
+  },
+  {
+    level: 9, challenge: 5, title: "Espiral", par: 5, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Empieza con pasos = 1 y súmale 1 después de cada giro. Repite hasta 9 veces: al llegar a la meta el robot se detiene.",
+    rows: ["G###", ".###", ".#S.", ".##.", "...."],
+    solution: [setv(1), repeat(9, movev(), right(), addv("+", 1))],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["##S.", "###.", "G..."] }, { rows: [".....G", ".#####", ".#S.##", ".##.##", "....##"] }],
+  },
+
+  // ── Nivel 10 · Proyectos finales (retos grandes con pruebas)
+  {
+    level: 10, challenge: 1, title: "Laberinto largo", par: 7, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Un solo carril con muchas esquinas hacia los dos lados. Recoge las 4 monedas.",
+    rows: ["###..*##########", "###.#.##########", "###.#.##...*####", "S..*#.##.##.####", "#####..*.##....G"],
+    solution: [follow(right(), ifC("wall", false, left(), left()))],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["S....#...", "####.#.#.", "####.#.#.", "####...#G"] }, { rows: ["##G", "##.", "##.", "...", ".##", ".##", ".##", ".##", "...", "##.", "##.", "##.", "S.."] }],
+  },
+  {
+    level: 10, challenge: 2, title: "Escalera interminable", par: 5, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Es la misma escalera de siempre, pero no sabes cuántos escalones tiene. Repite 9 veces.",
+    rows: ["S.####", "#.*###", "##..##", "###*.#", "####..", "#####G"],
+    solution: [repeat(9, move(), right(), move(), left())],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["S.##", "#..#", "##..", "###G"] }, { rows: ["S.######", "#..#####", "##..####", "###..###", "####..##", "#####..#", "######..", "#######G"] }],
+  },
+  {
+    level: 10, challenge: 3, title: "Espiral hacia dentro", par: 4, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Gira siempre a la derecha. Tu método funciona para cualquier espiral.",
+    rows: ["S......", "######.", "##G###.", "##.###.", "##.###.", "##....."],
+    solution: [follow(right())],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["S.....", "#####.", "#####.", "#####.", "##G..."] }, { rows: ["S.......", "#######.", "##...G#.", "##.####.", "##.####.", "##.####.", "##......"] }],
+  },
+  {
+    level: 10, challenge: 4, title: "Espiral hacia fuera", par: 5, startDir: 1, allowed: ALL, mode: "code",
+    hint: "Empieza con pasos = 1 y aumenta pasos después de cada giro. Recoge las 5 monedas.",
+    rows: ["..*...", ".####.", "*#S*#*", ".##.#.", "..*.#.", "#####.", "#####G"],
+    solution: [setv(1), repeat(9, movev(), right(), addv("+", 1))],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: [".....G", ".#####", ".#S.##", ".##.##", "....##"] }, { rows: ["G###", ".###", ".#S.", ".##.", "...."] }],
+  },
+  {
+    level: 10, challenge: 5, title: "El gran desafío", par: 7, startDir: 1, allowed: ALL, mode: "code",
+    hint: "El camino más largo, con 5 monedas y tres pruebas. Usa lo que sabes de caminos de un solo carril.",
+    rows: ["S...*..######", "######.######", "######.######", "####..*######", "####.########", "####.########", "####.########", "####*.....###", "#########.###", "######...*###", "######.######", "######...*...", "############.", "############.", "############G"],
+    solution: [follow(right(), ifC("wall", false, left(), left()))],
+    starter: { js: "// Escribe tu programa aquí\n", python: "# Escribe tu programa aquí\n" },
+    tests: [{ rows: ["############G", "############.", "############.", "#####.....##.", "#####.###.##.", "#####.###....", "S.....#######"] }, { rows: ["S...#", "###.#", "###.#", "###.#", "....#", ".####", ".....", "####.", "#G..."] }, { rows: ["######G#", "######.#", "######.#", "##.....#", "##.#####", "##......", "#######.", "S......."] }],
   },
 ];
 

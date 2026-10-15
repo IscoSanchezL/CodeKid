@@ -19,6 +19,9 @@ import { Burst, PopStars } from "@/components/fx/fx";
 import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
 import { UnlockNote } from "./unlock-note";
+import { CodeEditor } from "./code-editor";
+import { parseCode, type Lang } from "@/lib/code-parser";
+import { toCode } from "@/lib/codegen";
 import type { FuzzyVariant } from "./fuzzy";
 import { Workspace } from "./workspace";
 
@@ -28,12 +31,24 @@ const FAIL_TEXT: Record<FailReason, string> = {
     "Tu programa da demasiadas vueltas. Prueba con menos repeticiones.",
   "not-at-goal": "El robot se detuvo antes de llegar a la bandera.",
   empty: "Primero arma un programa con los bloques.",
+  tests:
+    "Tu programa llega a la bandera aquí, pero falla en otra prueba. Haz que funcione para cualquier camino.",
 };
 
 type Props = { level: Level; total: number };
 
 export function Player({ level, total }: Props) {
   const [program, setProgram] = useState<Block[]>([]);
+  // Retos de código: el alumno escribe en JavaScript o Python
+  const codeMode = level.mode === "code";
+  const [lang, setLang] = useState<Lang>("js");
+  const [wide, setWide] = useState(false);
+  const [code, setCode] = useState(level.starter?.js ?? "");
+  const [codeError, setCodeError] = useState<{
+    line: number;
+    message: string;
+  } | null>(null);
+  const [lineOf, setLineOf] = useState<Record<string, number>>({});
   const [result, setResult] = useState<RunResult | null>(null);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -176,13 +191,37 @@ export function Player({ level, total }: Props) {
     setSaveMessage(null);
   }
 
+  function changeLang(next: Lang) {
+    // Si el código actual se entiende, se traduce al otro lenguaje; si no, se vuelve al código inicial
+    const parsed = parseCode(code, lang);
+    setCode(
+      parsed.ok && parsed.program.length
+        ? toCode(parsed.program, next)
+        : (level.starter?.[next === "js" ? "js" : "python"] ?? ""),
+    );
+    setCodeError(null);
+    setLang(next);
+  }
+
   function execute() {
+    let prog = program;
+    if (codeMode) {
+      const parsed = parseCode(code, lang);
+      if (!parsed.ok) {
+        setCodeError({ line: parsed.line, message: parsed.message });
+        return;
+      }
+      setCodeError(null);
+      setLineOf(parsed.lineOf);
+      prog = parsed.program;
+      setProgram(prog);
+    }
     saved.current = false;
     failLogged.current = false;
     setReward(null);
     setSave("idle");
     setSaveMessage(null);
-    const r = run(level, program);
+    const r = run(level, prog);
     setResult(r);
     setIndex(0);
     setPlaying(r.snapshots.length > 1);
@@ -193,109 +232,116 @@ export function Player({ level, total }: Props) {
   const next = level.challenge < total ? level.challenge + 1 : null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <section
-        aria-label="Escenario"
-        className="relative h-[62vw] min-h-[260px] lg:h-auto lg:min-h-0 lg:flex-1"
-      >
-        <Board
-          level={level}
-          snapshots={snapshots}
-          index={result ? index : 0}
-          celebrate={finished && result?.status === "win"}
-          variant={variant}
-          outfit={outfit}
-        />
+    <div
+      className="grid min-h-0 flex-1 gap-3 lg:[grid-template-columns:minmax(0,1fr)_var(--prog-w)]"
+      style={
+        {
+          "--prog-w": wide
+            ? "clamp(480px, 46vw, 700px)"
+            : "clamp(380px, 34vw, 470px)",
+        } as React.CSSProperties
+      }
+    >
+      <div className="flex min-h-0 flex-col gap-3">
+        <section
+          aria-label="Escenario"
+          className="relative h-[62vw] min-h-[260px] lg:h-auto lg:min-h-0 lg:flex-1"
+        >
+          <Board
+            level={level}
+            snapshots={snapshots}
+            index={result ? index : 0}
+            celebrate={finished && result?.status === "win"}
+            variant={variant}
+            outfit={outfit}
+          />
 
-        {showHint && (
-          <p
-            role="note"
-            className="absolute left-1/2 top-3 z-10 max-w-[90%] -translate-x-1/2 rounded-xl bg-white/95 px-4 py-2 text-center text-sm font-semibold text-[#0b1440] shadow-lg"
-          >
-            💡 {level.hint}
-          </p>
-        )}
-
-        {finished && result && (
-          <div className="absolute inset-0 z-20 grid place-items-center overflow-auto bg-[#0b1440]/25 p-3">
-            <Card
-              className={`w-full max-w-md text-center ${result.status === "win" ? "win-card" : ""}`}
-              role="status"
+          {showHint && (
+            <p
+              role="note"
+              className="absolute left-1/2 top-3 z-10 max-w-[90%] -translate-x-1/2 rounded-xl bg-white/95 px-4 py-2 text-center text-sm font-semibold text-[#0b1440] shadow-lg"
             >
-              {result.status === "win" ? (
-                <>
-                  <Burst />
-                  <p className="text-grad text-3xl font-extrabold">
-                    ¡Lo lograste!
-                  </p>
-                  <PopStars earned={result.stars} />
-                  <ul className="mt-2 text-sm text-muted">
-                    <li>
-                      Usaste {result.blocks} bloques (lo mejor: {level.par})
-                    </li>
-                    {result.coinsTotal > 0 && (
-                      <li>
-                        Monedas: {result.coinsCollected} de {result.coinsTotal}
-                      </li>
-                    )}
-                  </ul>
-                  {isStudent && (
-                    <SaveStatus
-                      state={save}
-                      message={saveMessage}
-                      onRetry={() => void persist()}
-                    />
-                  )}
-                  {isStudent && reward && <RewardPanel reward={reward} />}
-                  <UnlockNote
-                    key={`${save}-${reward ? 1 : 0}-${ready ? 1 : 0}`}
-                    level={level.level}
-                  />
-                  {ready && wallet && !isStudent && (
-                    <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
-                      Estás probando como docente: aquí no se guardan estrellas
-                      ni monedas.
-                    </p>
-                  )}
-                  {ready && !wallet && (
-                    <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
-                      Entra con el código de tu clase para guardar tu progreso y
-                      ganar monedas 🪙
-                    </p>
-                  )}
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    <Button variant="outline" onClick={reset}>
-                      Mejorar
-                    </Button>
-                    {next ? (
-                      <ButtonLink href={`/nivel/${level.level}/${next}`}>
-                        Siguiente reto →
-                      </ButtonLink>
-                    ) : (
-                      <ButtonLink href="/mapa">Volver al mapa</ButtonLink>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-lg font-bold">
-                    {FAIL_TEXT[result.reason ?? "not-at-goal"]}
-                  </p>
-                  <Button className="mt-3" onClick={reset}>
-                    Intentar otra vez
-                  </Button>
-                </>
-              )}
-            </Card>
-          </div>
-        )}
-      </section>
+              💡 {level.hint}
+            </p>
+          )}
 
-      <aside
-        aria-label="Programa"
-        className="flex flex-col gap-3 lg:flex-row lg:items-stretch"
-      >
-        <div className="flex shrink-0 flex-row items-center justify-center gap-2 lg:flex-col lg:justify-center">
+          {finished && result && (
+            <div className="absolute inset-0 z-20 grid place-items-center overflow-auto bg-[#0b1440]/25 p-3">
+              <Card
+                className={`w-full max-w-md text-center ${result.status === "win" ? "win-card" : ""}`}
+                role="status"
+              >
+                {result.status === "win" ? (
+                  <>
+                    <Burst />
+                    <p className="text-grad text-3xl font-extrabold">
+                      ¡Lo lograste!
+                    </p>
+                    <PopStars earned={result.stars} />
+                    <ul className="mt-2 text-sm text-muted">
+                      <li>
+                        Usaste {result.blocks} bloques (lo mejor: {level.par})
+                      </li>
+                      {result.coinsTotal > 0 && (
+                        <li>
+                          Monedas: {result.coinsCollected} de{" "}
+                          {result.coinsTotal}
+                        </li>
+                      )}
+                    </ul>
+                    {isStudent && (
+                      <SaveStatus
+                        state={save}
+                        message={saveMessage}
+                        onRetry={() => void persist()}
+                      />
+                    )}
+                    {isStudent && reward && <RewardPanel reward={reward} />}
+                    <UnlockNote
+                      key={`${save}-${reward ? 1 : 0}-${ready ? 1 : 0}`}
+                      level={level.level}
+                    />
+                    {ready && wallet && !isStudent && (
+                      <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
+                        Estás probando como docente: aquí no se guardan
+                        estrellas ni monedas.
+                      </p>
+                    )}
+                    {ready && !wallet && (
+                      <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
+                        Entra con el código de tu clase para guardar tu progreso
+                        y ganar monedas 🪙
+                      </p>
+                    )}
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      <Button variant="outline" onClick={reset}>
+                        Mejorar
+                      </Button>
+                      {next ? (
+                        <ButtonLink href={`/nivel/${level.level}/${next}`}>
+                          Siguiente reto →
+                        </ButtonLink>
+                      ) : (
+                        <ButtonLink href="/mapa">Volver al mapa</ButtonLink>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-bold">
+                      {FAIL_TEXT[result.reason ?? "not-at-goal"]}
+                    </p>
+                    {result.tests && <TestList tests={result.tests} />}
+                    <Button className="mt-3" onClick={reset}>
+                      Intentar otra vez
+                    </Button>
+                  </>
+                )}
+              </Card>
+            </div>
+          )}
+        </section>
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-2">
           {editing ? (
             <Button size="lg" variant="go" onClick={execute}>
               ▶ Ejecutar
@@ -313,18 +359,63 @@ export function Player({ level, total }: Props) {
           >
             💡 Pista
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden lg:inline-flex"
+            onClick={() => setWide((v) => !v)}
+            aria-pressed={wide}
+            title="Hace más ancha la columna del programa"
+          >
+            {wide ? "⇥ Reducir" : "⇤ Ampliar programa"}
+          </Button>
         </div>
-        <div className="grid min-w-0 flex-1 items-start gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(0,1.7fr)] lg:max-h-[38vh] lg:overflow-y-auto">
-          <Workspace
-            allowed={level.allowed}
-            program={program}
-            onChange={edit}
-            editing={editing}
-            runningId={runningId}
-          />
-        </div>
+      </div>
+
+      <aside aria-label="Programa" className="flex min-h-0 flex-col gap-3">
+        {codeMode ? (
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <CodeEditor
+              lang={lang}
+              onLang={changeLang}
+              value={code}
+              onChange={setCode}
+              error={codeError}
+              runningLine={runningId ? (lineOf[runningId] ?? null) : null}
+              disabled={!editing}
+            />
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:overflow-hidden">
+            <Workspace
+              allowed={level.allowed}
+              program={program}
+              onChange={edit}
+              editing={editing}
+              runningId={runningId}
+            />
+          </div>
+        )}
       </aside>
     </div>
+  );
+}
+
+function TestList({ tests }: { tests: { passed: boolean }[] }) {
+  return (
+    <ul
+      className="mt-2 flex flex-wrap justify-center gap-2 text-sm font-bold"
+      aria-label="Pruebas automáticas"
+    >
+      {tests.map((t, i) => (
+        <li
+          key={i}
+          className={`rounded-full px-3 py-1 ${t.passed ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}
+        >
+          {t.passed ? "✔" : "✘"} Prueba {i + 1}
+        </li>
+      ))}
+    </ul>
   );
 }
 
