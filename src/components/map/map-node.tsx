@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LevelStars } from "./level-stars";
 import { WORLDS } from "./island";
+import { Planet } from "./planets";
 import { useMapProgress } from "./use-current-level";
 
 type Props = {
@@ -56,7 +57,7 @@ export function MapNode({ level, title, icon, x, y, open }: Props) {
               />
               <stop offset="100%" stopColor={top} stopOpacity="0" />
             </radialGradient>
-            <radialGradient id={`${id}-shade`} cx="0.72" cy="0.78" r="0.75">
+            <radialGradient id={`${id}-shade-old`} cx="0.72" cy="0.78" r="0.75">
               <stop offset="35%" stopColor="#02031a" stopOpacity="0" />
               <stop offset="100%" stopColor="#02031a" stopOpacity="0.42" />
             </radialGradient>
@@ -96,44 +97,7 @@ export function MapNode({ level, title, icon, x, y, open }: Props) {
               />
             </g>
           )}
-          {/* esfera */}
-          <circle cx="85" cy="56" r="37" fill={`url(#${id}-body)`} />
-          <g clipPath={`url(#${id}-clip)`}>
-            <path
-              d="M40 44 Q85 34 130 46"
-              fill="none"
-              stroke="#fff"
-              strokeOpacity="0.16"
-              strokeWidth="7"
-            />
-            <path
-              d="M38 62 Q85 52 132 64"
-              fill="none"
-              stroke="#000"
-              strokeOpacity="0.14"
-              strokeWidth="6"
-            />
-            <path
-              d="M42 78 Q85 70 128 80"
-              fill="none"
-              stroke="#fff"
-              strokeOpacity="0.12"
-              strokeWidth="5"
-            />
-            <circle cx="68" cy="70" r="5" fill="#000" fillOpacity="0.14" />
-            <circle cx="104" cy="42" r="3.5" fill="#000" fillOpacity="0.12" />
-            <circle cx="96" cy="76" r="2.5" fill="#fff" fillOpacity="0.14" />
-            <circle cx="85" cy="56" r="37" fill={`url(#${id}-shade)`} />
-          </g>
-          <circle
-            cx="85"
-            cy="56"
-            r="37"
-            fill="none"
-            stroke="#fff"
-            strokeOpacity={open ? 0.5 : 0.2}
-            strokeWidth="1.5"
-          />
+          <Planet level={level} open={open} />
           {ringed && (
             <path
               d="M16 64 A70 15 0 0 0 154 64"
@@ -144,17 +108,32 @@ export function MapNode({ level, title, icon, x, y, open }: Props) {
               transform="rotate(-18 85 60)"
             />
           )}
-          {/* icono del tema o candado */}
-          <text
-            x="85"
-            y="66"
-            textAnchor="middle"
-            fontSize="28"
-            opacity={open ? 1 : 0.7}
-            style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.5))" }}
-          >
-            {open ? icon : "🔒"}
-          </text>
+          {/* candado en el centro si está bloqueado; si no, insignia del tema */}
+          {open ? (
+            <g>
+              <circle
+                cx="48"
+                cy="92"
+                r="12"
+                fill="#070a2c"
+                stroke="#7df9ff"
+                strokeWidth="2.5"
+              />
+              <text x="48" y="97" textAnchor="middle" fontSize="13">
+                {icon}
+              </text>
+            </g>
+          ) : (
+            <text
+              x="85"
+              y="66"
+              textAnchor="middle"
+              fontSize="26"
+              style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.6))" }}
+            >
+              🔒
+            </text>
+          )}
           {/* número del nivel */}
           <circle
             cx="122"
