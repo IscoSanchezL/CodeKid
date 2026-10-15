@@ -9,7 +9,10 @@ import { LEVELS } from "@/lib/levels";
 type Params = { nivel: string; reto: string };
 
 export function generateStaticParams(): Params[] {
-  return CHALLENGES.map((c) => ({ nivel: String(c.level), reto: String(c.challenge) }));
+  return CHALLENGES.map((c) => ({
+    nivel: String(c.level),
+    reto: String(c.challenge),
+  }));
 }
 
 export function generateMetadata({ params }: { params: Params }): Metadata {
@@ -24,16 +27,18 @@ export default function RetoPage({ params }: { params: Params }) {
 
   return (
     <>
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Logo href="/mapa" />
-        <div className="flex items-center gap-4">
-          <p className="hidden text-sm font-medium text-muted sm:block">
-            Nivel {level.level} · {meta?.title}
-          </p>
-          <UserBar />
+      <header className="topbar">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3">
+          <Logo href="/mapa" />
+          <div className="flex items-center gap-4">
+            <p className="hidden text-sm font-medium text-muted sm:block">
+              Nivel {level.level} · {meta?.title}
+            </p>
+            <UserBar />
+          </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 pb-16">
+      <main className="rise mx-auto max-w-6xl px-4 pb-16 pt-6">
         <h1 className="mb-1 text-2xl font-extrabold">
           Reto {level.challenge}: {level.title}
         </h1>

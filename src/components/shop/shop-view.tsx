@@ -6,8 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Fuzzy, type FuzzyVariant, type Outfit } from "@/components/game/fuzzy";
 import { variantFor } from "@/components/game/fuzzy-avatar";
-import { CATALOG, itemById, itemsOf, RARITY_LABEL, SLOT_KEY, SLOTS, type ShopItem, type Slot } from "@/shop/catalog";
-import { buyItem, equipItem, loadDeal, loadPrices, priceWithDiscount, type Deal } from "@/lib/wallet";
+import {
+  CATALOG,
+  itemById,
+  itemsOf,
+  RARITY_LABEL,
+  SLOT_KEY,
+  SLOTS,
+  type ShopItem,
+  type Slot,
+} from "@/shop/catalog";
+import {
+  buyItem,
+  equipItem,
+  loadDeal,
+  loadPrices,
+  priceWithDiscount,
+  type Deal,
+} from "@/lib/wallet";
 import { useWallet } from "./use-wallet";
 
 const RARITY_STYLE: Record<ShopItem["rarity"], string> = {
@@ -17,9 +33,17 @@ const RARITY_STYLE: Record<ShopItem["rarity"], string> = {
 };
 
 /** Cómo se ve el personaje con la ropa puesta y, opcionalmente, un artículo de prueba. */
-function look(avatar: Record<string, string>, id: string, preview?: ShopItem | null) {
+function look(
+  avatar: Record<string, string>,
+  id: string,
+  preview?: ShopItem | null,
+) {
   let variant = (avatar.variant as FuzzyVariant | undefined) ?? variantFor(id);
-  const outfit: Outfit = { hat: avatar.hat, glasses: avatar.glasses, neck: avatar.neck };
+  const outfit: Outfit = {
+    hat: avatar.hat,
+    glasses: avatar.glasses,
+    neck: avatar.neck,
+  };
   if (preview) {
     if (preview.slot === "color") variant = preview.id.slice(6) as FuzzyVariant;
     else outfit[SLOT_KEY[preview.slot] as keyof Outfit] = preview.id;
@@ -34,19 +58,28 @@ export function ShopView() {
   const [slot, setSlot] = useState<Slot>("hat");
   const [onlyOwned, setOnlyOwned] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void loadPrices().then(setPrices).catch(() => undefined);
-    void loadDeal().then(setDeal).catch(() => undefined);
+    void loadPrices()
+      .then(setPrices)
+      .catch(() => undefined);
+    void loadDeal()
+      .then(setDeal)
+      .catch(() => undefined);
   }, []);
 
   const owned = useMemo(() => new Set(wallet?.owned ?? []), [wallet]);
   const priceOf = useCallback(
     (item: ShopItem) => {
       const base = prices[item.id] ?? item.price;
-      return deal && deal.itemId === item.id ? priceWithDiscount(base, deal.discount) : base;
+      return deal && deal.itemId === item.id
+        ? priceWithDiscount(base, deal.discount)
+        : base;
     },
     [prices, deal],
   );
@@ -59,7 +92,7 @@ export function ShopView() {
   const isEquipped = (item: ShopItem) => equippedId(item) === item.id;
 
   const dealItem = deal ? itemById(deal.itemId) : null;
-  const selected = picked ? itemById(picked) ?? null : null;
+  const selected = picked ? (itemById(picked) ?? null) : null;
   const list = itemsOf(slot).filter((i) => !onlyOwned || have(i));
 
   if (!ready) return <p className="py-20 text-center text-muted">Cargando…</p>;
@@ -69,9 +102,17 @@ export function ShopView() {
         <p className="text-5xl" aria-hidden>
           🛍️
         </p>
-        <h1 className="mt-2 text-2xl font-extrabold">La tienda es para los alumnos</h1>
-        <p className="mt-2 text-muted">Entra con el código de tu clase para ganar monedas y vestir a tu personaje.</p>
-        <Button className="mt-4" onClick={() => (window.location.href = "/clase")}>
+        <h1 className="mt-2 text-2xl font-extrabold">
+          La tienda es para los alumnos
+        </h1>
+        <p className="mt-2 text-muted">
+          Entra con el código de tu clase para ganar monedas y vestir a tu
+          personaje.
+        </p>
+        <Button
+          className="mt-4"
+          onClick={() => (window.location.href = "/clase")}
+        >
           Entrar con mi clase
         </Button>
       </Card>
@@ -88,7 +129,10 @@ export function ShopView() {
       await equipItem(item.slot, item.id); // al comprar, se lo pone
       setMessage({ kind: "ok", text: `¡Es tuyo! Ya llevas «${item.name}».` });
     } catch (e) {
-      setMessage({ kind: "error", text: e instanceof Error ? e.message : "No se pudo comprar" });
+      setMessage({
+        kind: "error",
+        text: e instanceof Error ? e.message : "No se pudo comprar",
+      });
     } finally {
       setBusy(false);
     }
@@ -98,9 +142,15 @@ export function ShopView() {
     setBusy(true);
     setMessage(null);
     try {
-      await equipItem(item.slot, isEquipped(item) && item.slot !== "color" ? null : item.id);
+      await equipItem(
+        item.slot,
+        isEquipped(item) && item.slot !== "color" ? null : item.id,
+      );
     } catch (e) {
-      setMessage({ kind: "error", text: e instanceof Error ? e.message : "No se pudo cambiar" });
+      setMessage({
+        kind: "error",
+        text: e instanceof Error ? e.message : "No se pudo cambiar",
+      });
     } finally {
       setBusy(false);
     }
@@ -114,9 +164,18 @@ export function ShopView() {
       <aside className="flex flex-col gap-4">
         <Card className="scene-sky relative overflow-hidden text-center">
           <div className="fz-idle mx-auto mt-16 w-fit">
-            <Fuzzy variant={shown.variant} outfit={shown.outfit} size={190} dir={2} mood="happy" />
+            <Fuzzy
+              variant={shown.variant}
+              outfit={shown.outfit}
+              size={190}
+              dir={2}
+              mood="happy"
+            />
           </div>
-          <div aria-hidden className="scene-meadow absolute inset-x-0 bottom-0 h-8" />
+          <div
+            aria-hidden
+            className="scene-meadow absolute inset-x-0 bottom-0 h-8"
+          />
           <p className="relative mt-6 pb-8 text-sm font-bold">
             {selected ? `Probando: ${selected.name}` : "Así te ven tus amigos"}
           </p>
@@ -125,16 +184,32 @@ export function ShopView() {
         {selected ? (
           <Card className="text-center">
             <p className="text-lg font-extrabold">{selected.name}</p>
-            <span className={`mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-bold ${RARITY_STYLE[selected.rarity]}`}>
+            <span
+              className={`mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-bold ${RARITY_STYLE[selected.rarity]}`}
+            >
               {RARITY_LABEL[selected.rarity]}
             </span>
             {have(selected) ? (
-              <Button className="mt-3 w-full" variant={isEquipped(selected) ? "secondary" : "go"} disabled={busy} onClick={() => toggleEquip(selected)}>
-                {isEquipped(selected) ? (selected.slot === "color" ? "Ya lo llevas" : "Quitar") : "Ponérmelo"}
+              <Button
+                className="mt-3 w-full"
+                variant={isEquipped(selected) ? "secondary" : "go"}
+                disabled={busy}
+                onClick={() => toggleEquip(selected)}
+              >
+                {isEquipped(selected)
+                  ? selected.slot === "color"
+                    ? "Ya lo llevas"
+                    : "Quitar"
+                  : "Ponérmelo"}
               </Button>
             ) : (
               <>
-                <Button className="mt-3 w-full" variant="go" disabled={busy || missing > 0} onClick={() => buy(selected)}>
+                <Button
+                  className="mt-3 w-full"
+                  variant="go"
+                  disabled={busy || missing > 0}
+                  onClick={() => buy(selected)}
+                >
                   Comprar por 🪙 {priceOf(selected)}
                 </Button>
                 {missing > 0 && (
@@ -149,14 +224,19 @@ export function ShopView() {
             )}
           </Card>
         ) : (
-          <Card className="text-center text-sm text-muted">Toca un artículo para probártelo antes de comprarlo.</Card>
+          <Card className="text-center text-sm text-muted">
+            Toca un artículo para probártelo antes de comprarlo.
+          </Card>
         )}
       </aside>
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-extrabold">Tienda</h1>
-          <p className="rounded-full bg-warn/20 px-4 py-1.5 text-lg font-extrabold" aria-label={`${wallet.coins} monedas`}>
+          <p
+            className="rounded-full bg-warn/20 px-4 py-1.5 text-lg font-extrabold"
+            aria-label={`${wallet.coins} monedas`}
+          >
             🪙 {wallet.coins}
           </p>
         </div>
@@ -174,9 +254,15 @@ export function ShopView() {
               🔥
             </span>
             <span className="flex-1">
-              <span className="block text-sm font-bold uppercase tracking-wide">Oferta de hoy · cambia cada día</span>
+              <span className="block text-sm font-bold uppercase tracking-wide">
+                Oferta de hoy · cambia cada día
+              </span>
               <span className="font-extrabold">
-                {dealItem.name}: <s className="opacity-70">{prices[dealItem.id] ?? dealItem.price}</s> {priceOf(dealItem)} 🪙 (−{deal.discount} %)
+                {dealItem.name}:{" "}
+                <s className="opacity-70">
+                  {prices[dealItem.id] ?? dealItem.price}
+                </s>{" "}
+                {priceOf(dealItem)} 🪙 (−{deal.discount} %)
               </span>
             </span>
           </button>
@@ -191,7 +277,11 @@ export function ShopView() {
           </p>
         )}
 
-        <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Categorías">
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="tablist"
+          aria-label="Categorías"
+        >
           {SLOTS.map((s) => (
             <button
               key={s.slot}
@@ -205,7 +295,12 @@ export function ShopView() {
             </button>
           ))}
           <label className="ml-auto flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" checked={onlyOwned} onChange={(e) => setOnlyOwned(e.target.checked)} className="h-4 w-4" />
+            <input
+              type="checkbox"
+              checked={onlyOwned}
+              onChange={(e) => setOnlyOwned(e.target.checked)}
+              className="h-4 w-4"
+            />
             Solo lo que tengo
           </label>
         </div>
@@ -223,8 +318,10 @@ export function ShopView() {
                   type="button"
                   onClick={() => setPicked(item.id)}
                   aria-pressed={picked === item.id}
-                  className={`card-3d relative flex w-full flex-col items-center gap-1 rounded-2xl border bg-surface p-3 text-center transition-transform hover:-translate-y-1 ${
-                    picked === item.id ? "border-brand ring-2 ring-brand" : "border-border"
+                  className={`card-3d lift relative flex w-full flex-col items-center gap-1 rounded-2xl border bg-surface p-3 text-center ${
+                    picked === item.id
+                      ? "border-brand ring-2 ring-brand"
+                      : "border-border"
                   }`}
                 >
                   {isDeal && (
@@ -232,22 +329,46 @@ export function ShopView() {
                       −{deal?.discount}%
                     </span>
                   )}
-                  <Fuzzy variant={l.variant} outfit={l.outfit} size={84} dir={2} mood="happy" />
-                  <span className="text-sm font-extrabold leading-tight">{item.name}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${RARITY_STYLE[item.rarity]}`}>{RARITY_LABEL[item.rarity]}</span>
+                  <Fuzzy
+                    variant={l.variant}
+                    outfit={l.outfit}
+                    size={84}
+                    dir={2}
+                    mood="happy"
+                  />
+                  <span className="text-sm font-extrabold leading-tight">
+                    {item.name}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${RARITY_STYLE[item.rarity]}`}
+                  >
+                    {RARITY_LABEL[item.rarity]}
+                  </span>
                   {mine ? (
-                    <span className="text-sm font-bold text-success">{isEquipped(item) ? "✔ Puesto" : "✔ Tuyo"}</span>
+                    <span className="text-sm font-bold text-success">
+                      {isEquipped(item) ? "✔ Puesto" : "✔ Tuyo"}
+                    </span>
                   ) : (
-                    <span className={`text-sm font-extrabold ${afford ? "" : "text-muted"}`}>
+                    <span
+                      className={`text-sm font-extrabold ${afford ? "" : "text-muted"}`}
+                    >
                       🪙 {price}
-                      {isDeal && <s className="ml-1 text-xs opacity-60">{prices[item.id] ?? item.price}</s>}
+                      {isDeal && (
+                        <s className="ml-1 text-xs opacity-60">
+                          {prices[item.id] ?? item.price}
+                        </s>
+                      )}
                     </span>
                   )}
                 </button>
               </li>
             );
           })}
-          {list.length === 0 && <li className="col-span-full text-sm text-muted">Aquí todavía no tienes nada. ¡Gana monedas y compra!</li>}
+          {list.length === 0 && (
+            <li className="col-span-full text-sm text-muted">
+              Aquí todavía no tienes nada. ¡Gana monedas y compra!
+            </li>
+          )}
         </ul>
       </section>
     </div>

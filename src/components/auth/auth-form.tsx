@@ -23,7 +23,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
     const raw = Object.fromEntries(new FormData(e.currentTarget));
     const login = isLogin ? credentialsSchema.safeParse(raw) : null;
     const register = isLogin ? null : registerSchema.safeParse(raw);
-    const failed = login?.success === false ? login : register?.success === false ? register : null;
+    const failed =
+      login?.success === false
+        ? login
+        : register?.success === false
+          ? register
+          : null;
     if (failed && !failed.success) {
       setError(failed.error.issues[0]?.message ?? "Datos no válidos");
       return;
@@ -36,7 +41,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
         ? await supabase.auth.signUp({
             email: register.data.email,
             password: register.data.password,
-            options: { data: { display_name: register.data.name, role: register.data.role } },
+            options: {
+              data: {
+                display_name: register.data.name,
+                role: register.data.role,
+              },
+            },
           })
         : await supabase.auth.signInWithPassword({
             email: login?.data?.email ?? "",
@@ -45,13 +55,21 @@ export function AuthForm({ mode }: { mode: Mode }) {
       if (authError) throw authError;
       const { data: auth } = await supabase.auth.getUser();
       const { data: profile } = auth.user
-        ? await supabase.from("profiles").select("role").eq("id", auth.user.id).maybeSingle()
+        ? await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", auth.user.id)
+            .maybeSingle()
         : { data: null };
       const staff = profile?.role === "teacher" || profile?.role === "admin";
       router.push(staff ? "/docente" : "/mapa");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo completar la operación");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo completar la operación",
+      );
     } finally {
       setLoading(false);
     }
@@ -59,10 +77,20 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <Card>
-      <h1 className="text-2xl font-extrabold">{isLogin ? "Bienvenido de nuevo" : "Crea tu cuenta"}</h1>
+      <h1 className="text-2xl font-extrabold">
+        {isLogin ? "Bienvenido de nuevo" : "Crea tu cuenta"}
+      </h1>
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
-        {!isLogin && <Input label="Nombre" name="name" autoComplete="nickname" required />}
-        <Input label="Correo" name="email" type="email" autoComplete="email" required />
+        {!isLogin && (
+          <Input label="Nombre" name="name" autoComplete="nickname" required />
+        )}
+        <Input
+          label="Correo"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+        />
         <Input
           label="Contraseña"
           name="password"
@@ -77,7 +105,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
             <select
               name="role"
               defaultValue="student"
-              className="h-11 rounded-xl border border-border bg-surface px-3 text-base"
+              className="field h-11 rounded-xl border border-border bg-surface px-3 text-base"
             >
               <option value="student">Estudiante</option>
               <option value="teacher">Docente</option>
@@ -96,7 +124,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
       </form>
       <p className="mt-5 text-center text-sm text-muted">
         {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-        <Link className="font-semibold text-brand" href={isLogin ? "/registro" : "/login"}>
+        <Link
+          className="font-semibold text-brand"
+          href={isLogin ? "/registro" : "/login"}
+        >
           {isLogin ? "Regístrate" : "Entra"}
         </Link>
       </p>
