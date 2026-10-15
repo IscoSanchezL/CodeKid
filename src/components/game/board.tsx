@@ -17,7 +17,7 @@ function useFit(natW: number) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const update = () => setScale(Math.min(1.9, el.clientWidth / natW));
+    const update = () => setScale(Math.min(1.7, el.clientWidth / natW));
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -26,7 +26,8 @@ function useFit(natW: number) {
   return { ref, scale };
 }
 
-const STAR = "M0 -15 L4.4 -5 L15 -4.6 L6.9 2.4 L9.3 13 L0 7.4 L-9.3 13 L-6.9 2.4 L-15 -4.6 L-4.4 -5 Z";
+const STAR =
+  "M0 -15 L4.4 -5 L15 -4.6 L6.9 2.4 L9.3 13 L0 7.4 L-9.3 13 L-6.9 2.4 L-15 -4.6 L-4.4 -5 Z";
 
 function Flag() {
   return (
@@ -51,7 +52,14 @@ type Props = {
   outfit?: Outfit;
 };
 
-export function Board({ level, snapshots, index, celebrate = false, variant = "cyan", outfit }: Props) {
+export function Board({
+  level,
+  snapshots,
+  index,
+  celebrate = false,
+  variant = "cyan",
+  outfit,
+}: Props) {
   const map = useMemo(() => parseLevel(level), [level]);
   const cols = map.width;
   const rows = map.height;
@@ -63,30 +71,25 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
 
   const cells = useMemo(() => {
     const out: { x: number; y: number; ch: string }[] = [];
-    level.rows.forEach((row, y) => [...row].forEach((ch, x) => ch !== "#" && out.push({ x, y, ch })));
+    level.rows.forEach((row, y) =>
+      [...row].forEach((ch, x) => ch !== "#" && out.push({ x, y, ch })),
+    );
     return out;
   }, [level]);
 
-  // Setos: un borde en cada lado de una casilla que no toca otra casilla de camino
-  const hedges = useMemo(() => {
-    const isPath = (x: number, y: number) => x >= 0 && y >= 0 && x < cols && y < rows && level.rows[y][x] !== "#";
-    const out: { key: string; x: number; y: number; w: number; h: number }[] = [];
-    for (const { x, y } of cells) {
-      const px = ox + x * T;
-      const py = oy + y * T;
-      if (!isPath(x, y - 1)) out.push({ key: `t${x}-${y}`, x: px - 3, y: py - 9, w: T + 6, h: 14 });
-      if (!isPath(x, y + 1)) out.push({ key: `b${x}-${y}`, x: px - 3, y: py + T - 5, w: T + 6, h: 14 });
-      if (!isPath(x - 1, y)) out.push({ key: `l${x}-${y}`, x: px - 9, y: py - 3, w: 14, h: T + 6 });
-      if (!isPath(x + 1, y)) out.push({ key: `r${x}-${y}`, x: px + T - 5, y: py - 3, w: 14, h: T + 6 });
-    }
-    return out;
-  }, [cells, cols, rows, level, ox, oy]);
-
   // Cielo: globos, nubes y mariposas repartidos fuera del camino (posiciones fijas por reto)
   const decor = useMemo(() => {
-    const isPath = (x: number, y: number) => x >= 0 && y >= 0 && x < cols && y < rows && level.rows[y][x] !== "#";
+    const isPath = (x: number, y: number) =>
+      x >= 0 && y >= 0 && x < cols && y < rows && level.rows[y][x] !== "#";
     const seed = level.level * 10 + level.challenge;
-    const items: { key: string; kind: SkyKind; x: number; y: number; s: number; v: number }[] = [];
+    const items: {
+      key: string;
+      kind: SkyKind;
+      x: number;
+      y: number;
+      s: number;
+      v: number;
+    }[] = [];
     const minX = -Math.ceil(ox / T);
     const maxX = cols + Math.ceil(ox / T);
     const minY = -Math.ceil(oy / T);
@@ -97,17 +100,28 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
         const h = hash(cx, cy, seed);
         const px = ox + cx * T + T / 2 + (hash(cx, cy, seed + 1) - 0.5) * 24;
         const py = oy + cy * T + T * 0.8 + (hash(cx, cy, seed + 2) - 0.5) * 12;
-        const s = 0.75 + hash(cx, cy, seed + 3) * 0.3;
+        const s = 0.9 + hash(cx, cy, seed + 3) * 0.3;
         // Los globos altos no se ponen justo debajo del camino (taparían las casillas)
-        const tallOk = !isPath(cx, cy - 1) && !isPath(cx, cy - 2) && !isPath(cx - 1, cy - 1) && !isPath(cx + 1, cy - 1);
+        const tallOk =
+          !isPath(cx, cy - 1) &&
+          !isPath(cx, cy - 2) &&
+          !isPath(cx - 1, cy - 1) &&
+          !isPath(cx + 1, cy - 1);
         let kind: SkyKind | null = null;
-        if (h < 0.1) kind = tallOk ? "balloon" : "cloud";
-        else if (h < 0.15) kind = tallOk ? "bunch" : "hole";
-        else if (h < 0.28) kind = "cloud";
-        else if (h < 0.34) kind = "butterfly";
-        else if (h < 0.4) kind = "hole";
+        if (h < 0.06) kind = tallOk ? "balloon" : null;
+        else if (h < 0.1) kind = tallOk ? "bunch" : null;
+        else if (h < 0.22) kind = "cloud";
+        else if (h < 0.26) kind = "hole";
+        else if (h < 0.28) kind = "butterfly";
         if (!kind) continue;
-        items.push({ key: `${cx},${cy}`, kind, x: px, y: kind === "butterfly" ? py - 22 : py, s, v: Math.floor(h * 60) });
+        items.push({
+          key: `${cx},${cy}`,
+          kind,
+          x: px,
+          y: kind === "butterfly" ? py - 22 : py,
+          s,
+          v: Math.floor(h * 60),
+        });
       }
     }
     return items.sort((a, b) => a.y - b.y);
@@ -126,13 +140,17 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
   const fx = ox + current.x * T + T / 2;
   const fy = oy + current.y * T + T / 2;
   const SPR = T * 1.2;
-  const slide = "left 280ms cubic-bezier(.3,.7,.3,1), top 280ms cubic-bezier(.3,.7,.3,1)";
+  const slide =
+    "left 280ms cubic-bezier(.3,.7,.3,1), top 280ms cubic-bezier(.3,.7,.3,1)";
 
   return (
     <div
       ref={ref}
       className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border-4 border-white shadow-card"
-      style={{ height: H * scale }}
+      style={{
+        height: H * scale,
+        background: "linear-gradient(180deg,#c4f1ff,#a6e6fa)",
+      }}
     >
       <div
         style={{
@@ -146,30 +164,45 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
           transformOrigin: "50% 0",
         }}
       >
-        <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="absolute inset-0" role="img" aria-label="Mapa del reto">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width={W}
+          height={H}
+          className="absolute inset-0"
+          role="img"
+          aria-label="Mapa del reto"
+        >
           <defs>
             <linearGradient id="bd-grass" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#bfe9ff" />
-              <stop offset="100%" stopColor="#e9f8ff" />
+              <stop offset="0%" stopColor="#c4f1ff" />
+              <stop offset="100%" stopColor="#a6e6fa" />
             </linearGradient>
             <linearGradient id="bd-tile" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#c9f7ff" />
-              <stop offset="100%" stopColor="#5fd8ff" />
+              <stop offset="0%" stopColor="#6fe0fb" />
+              <stop offset="100%" stopColor="#14b0e6" />
             </linearGradient>
             <linearGradient id="bd-goal" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#fff3b0" />
               <stop offset="100%" stopColor="#ffd43b" />
             </linearGradient>
             <filter id="bd-glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="8" />
+              <feGaussianBlur stdDeviation="6" />
             </filter>
           </defs>
 
           <rect width={W} height={H} fill="url(#bd-grass)" />
           {/* resplandor del camino */}
-          <g filter="url(#bd-glow)" opacity="0.75">
+          <g filter="url(#bd-glow)" opacity="0.95">
             {cells.map(({ x, y }) => (
-              <rect key={`g${x}-${y}`} x={ox + x * T - 4} y={oy + y * T - 4} width={T + 8} height={T + 8} rx="16" fill="#19c3f0" />
+              <rect
+                key={`g${x}-${y}`}
+                x={ox + x * T - 4}
+                y={oy + y * T - 4}
+                width={T + 8}
+                height={T + 8}
+                rx="18"
+                fill="#ffffff"
+              />
             ))}
           </g>
 
@@ -179,30 +212,71 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
             const py = oy + y * T;
             return (
               <g key={`t${x}-${y}`}>
-                <rect x={px + 2.5} y={py + 2.5} width={T - 5} height={T - 5} rx="11" fill={ch === "G" ? "url(#bd-goal)" : "url(#bd-tile)"} stroke="#e9fcff" strokeWidth="2.5" />
-                <rect x={px + 7} y={py + 6} width={T - 14} height={(T - 12) * 0.32} rx="7" fill="#fff" opacity="0.4" />
-                {ch === "S" && <circle cx={px + T / 2} cy={py + T / 2} r="19" fill="#fff" opacity="0.35" />}
+                <rect
+                  x={px + 1.5}
+                  y={py + 1.5}
+                  width={T - 3}
+                  height={T - 3}
+                  rx="9"
+                  fill={ch === "G" ? "url(#bd-goal)" : "url(#bd-tile)"}
+                  stroke="#0c92c8"
+                  strokeOpacity="0.35"
+                  strokeWidth="1.5"
+                />
+                <rect
+                  x={px + 6}
+                  y={py + 5}
+                  width={T - 12}
+                  height={(T - 12) * 0.3}
+                  rx="6"
+                  fill="#fff"
+                  opacity="0.32"
+                />
+                <rect
+                  x={px + 6}
+                  y={py + T - 12}
+                  width={T - 12}
+                  height="5"
+                  rx="2.5"
+                  fill="#0a7fb3"
+                  opacity="0.18"
+                />
+                {ch === "S" && (
+                  <circle
+                    cx={px + T / 2}
+                    cy={py + T / 2}
+                    r="19"
+                    fill="#fff"
+                    opacity="0.35"
+                  />
+                )}
               </g>
             );
           })}
 
-          {/* bordes de nube */}
-          {hedges.map((h) => (
-            <g key={h.key}>
-              <rect x={h.x} y={h.y + 2} width={h.w} height={h.h} rx="7" fill="#a9d6f2" />
-              <rect x={h.x} y={h.y} width={h.w} height={h.h} rx="7" fill="#fff" />
-            </g>
-          ))}
-
           {/* paisaje */}
           {decor.map((d) => (
-            <g key={d.key} className={d.kind === "balloon" || d.kind === "bunch" ? "sky-bob" : undefined} style={{ animationDelay: `${(d.v % 5) * -1}s` }}>
+            <g
+              key={d.key}
+              className={
+                d.kind === "balloon" || d.kind === "bunch"
+                  ? "sky-bob"
+                  : undefined
+              }
+              style={{ animationDelay: `${(d.v % 5) * -1}s` }}
+              opacity={d.kind === "cloud" ? 0.6 : 1}
+            >
               <SkyPiece kind={d.kind} x={d.x} y={d.y} s={d.s} v={d.v} />
             </g>
           ))}
 
           {/* túnel de arco iris sobre la meta */}
-          <RainbowArch x={ox + map.goal.x * T + T / 2} y={oy + map.goal.y * T + 4} r={T * 0.56} w={5.5} />
+          <RainbowArch
+            x={ox + map.goal.x * T + T / 2}
+            y={oy + map.goal.y * T + 4}
+            r={T * 0.62}
+            w={6.5}
+          />
 
           {/* aro de la meta, estrellas y bandera */}
           <circle
@@ -217,18 +291,38 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
           {cells
             .filter((c) => c.ch === "*" && !taken.has(`${c.x},${c.y}`))
             .map((c) => (
-              <g key={`s${c.x}-${c.y}`} transform={`translate(${ox + c.x * T + T / 2} ${oy + c.y * T + T / 2})`}>
+              <g
+                key={`s${c.x}-${c.y}`}
+                transform={`translate(${ox + c.x * T + T / 2} ${oy + c.y * T + T / 2})`}
+              >
                 <g className="bd-star">
-                  <path d={STAR} fill="#ffc524" stroke="#d99a00" strokeWidth="2.5" strokeLinejoin="round" />
-                  <path d="M0 -9 L2.4 -3 L8 -2.6 L3.6 1.4 L5 7 L0 4 L-5 7 L-3.6 1.4 L-8 -2.6 L-2.4 -3 Z" fill="#fff3b0" opacity="0.7" />
+                  <path
+                    d={STAR}
+                    fill="#ffc524"
+                    stroke="#d99a00"
+                    strokeWidth="2.5"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M0 -9 L2.4 -3 L8 -2.6 L3.6 1.4 L5 7 L0 4 L-5 7 L-3.6 1.4 L-8 -2.6 L-2.4 -3 Z"
+                    fill="#fff3b0"
+                    opacity="0.7"
+                  />
                 </g>
               </g>
             ))}
-          <g transform={`translate(${ox + map.goal.x * T + T / 2 - 4} ${oy + map.goal.y * T + T / 2 + 14})`}>
+          <g
+            transform={`translate(${ox + map.goal.x * T + T / 2 - 4} ${oy + map.goal.y * T + T / 2 + 14})`}
+          >
             <Flag />
           </g>
 
-          <rect width={W} height={H} fill="var(--map-tint)" pointerEvents="none" />
+          <rect
+            width={W}
+            height={H}
+            fill="var(--map-tint)"
+            pointerEvents="none"
+          />
         </svg>
 
         {/* sombra y personaje */}
@@ -241,7 +335,8 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
             width: T * 0.68,
             height: T * 0.2,
             borderRadius: "50%",
-            background: "radial-gradient(ellipse, rgba(8,30,60,0.45) 0%, rgba(8,30,60,0) 70%)",
+            background:
+              "radial-gradient(ellipse, rgba(8,30,60,0.45) 0%, rgba(8,30,60,0) 70%)",
             transition: slide,
           }}
         />
@@ -256,8 +351,27 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
             pointerEvents: "none",
           }}
         >
-          <div key={i} className={current.bump ? "fz-bump" : moved ? "fz-hop" : turned ? "fz-turn" : celebrate ? "fz-cheer" : "fz-idle"}>
-            <Fuzzy variant={variant} outfit={outfit} dir={current.dir} mood={mood} size={SPR} />
+          <div
+            key={i}
+            className={
+              current.bump
+                ? "fz-bump"
+                : moved
+                  ? "fz-hop"
+                  : turned
+                    ? "fz-turn"
+                    : celebrate
+                      ? "fz-cheer"
+                      : "fz-idle"
+            }
+          >
+            <Fuzzy
+              variant={variant}
+              outfit={outfit}
+              dir={current.dir}
+              mood={mood}
+              size={SPR}
+            />
           </div>
         </div>
       </div>

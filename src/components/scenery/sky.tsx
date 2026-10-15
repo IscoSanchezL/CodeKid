@@ -90,7 +90,7 @@ export function SkyPiece({ kind, x, y, s = 1, v = 0 }: { kind: SkyKind; x: numbe
     case "butterfly":
       return <Butterfly x={x} y={y} s={s} v={v} />;
     case "hole":
-      return <Hole x={x} y={y} s={s} />;
+      return <Hole x={x} y={y} s={s * 0.65} />;
   }
 }
 
