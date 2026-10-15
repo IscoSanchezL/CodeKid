@@ -153,6 +153,10 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
           className="mt-6 flex flex-col gap-4"
           noValidate
         >
+          <p className="rounded-xl bg-surface-2 p-3 text-sm">
+            Vas a cambiar la contraseña de la cuenta:{" "}
+            <strong className="break-all">{account ?? "…"}</strong>
+          </p>
           <Input
             label="Contraseña nueva"
             name="password"
