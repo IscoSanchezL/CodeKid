@@ -2,8 +2,9 @@
 
 import { useId, useMemo } from "react";
 import type { Dir } from "@/engine/types";
+import { Glasses, Hat, Neck, NECK_BEHIND, NeckFront } from "./outfits";
 
-export type FuzzyVariant = "cyan" | "purple" | "orange" | "green" | "rainbow";
+export type FuzzyVariant = "cyan" | "purple" | "orange" | "green" | "rainbow" | "pink" | "red" | "gold";
 export type FuzzyMood = "idle" | "happy" | "bump";
 
 const PALETTE: Record<FuzzyVariant, { light: string; base: string; dark: string }> = {
@@ -12,6 +13,9 @@ const PALETTE: Record<FuzzyVariant, { light: string; base: string; dark: string 
   orange: { light: "#FFC38A", base: "#FF8A3D", dark: "#C4571A" },
   green: { light: "#9CF08A", base: "#35C759", dark: "#1B8A3A" },
   rainbow: { light: "#FFE27A", base: "#FF7AB6", dark: "#6C5CE7" },
+  pink: { light: "#FFC2E2", base: "#FF6FB1", dark: "#C23B80" },
+  red: { light: "#FF9F9F", base: "#EF4444", dark: "#A81818" },
+  gold: { light: "#FFF3A8", base: "#FFC524", dark: "#B8860B" },
 };
 
 /** Hacia dónde mira: se desplaza la cara para dar sensación de volumen. */
@@ -47,7 +51,7 @@ type Props = {
 };
 
 /** Personaje peludo con volumen (degradados, pelaje, brillo) dibujado en SVG. */
-export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, className }: Props) {
+export function Fuzzy({ variant = "cyan", outfit, dir = 2, mood = "idle", size = 80, className }: Props) {
   const uid = useId().replace(/:/g, "");
   const c = PALETTE[variant];
   const look = LOOK[dir];
@@ -82,7 +86,7 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
   const fy = look.dy * 0.8;
 
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} className={className} role="img" aria-label="Personaje">
+    <svg viewBox="0 0 100 100" width={size} height={size} className={className} role="img" aria-label="Personaje" overflow="visible">
       <defs>
         <radialGradient id={`body-${uid}`} cx="36%" cy="28%" r="80%">
           <stop offset="0%" stopColor={c.light} />
@@ -108,6 +112,8 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
         </clipPath>
       </defs>
 
+      {outfit?.neck && NECK_BEHIND.has(outfit.neck) && <Neck id={outfit.neck} />}
+
       <g filter={lite ? undefined : `url(#fur-${uid})`}>
         <circle cx="50" cy="52" r="40" fill={`url(#body-${uid})`} />
         {variant === "rainbow" && (
@@ -127,6 +133,8 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
           ))}
         </g>
       </g>
+
+      {outfit?.neck && <NeckFront id={outfit.neck} />}
 
       {/* sombra interior y brillo para dar volumen */}
       <ellipse cx="34" cy="30" rx="15" ry="9" fill="#fff" opacity="0.22" transform="rotate(-25 34 30)" />
@@ -163,7 +171,10 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
             <ellipse cx="76" cy="62" rx="5" ry="3" fill="#FF8FB0" opacity="0.45" />
           </>
         )}
+        {outfit?.glasses && mood !== "bump" && <Glasses id={outfit.glasses} />}
       </g>
+
+      {outfit?.hat && <Hat id={outfit.hat} />}
     </svg>
   );
 }
