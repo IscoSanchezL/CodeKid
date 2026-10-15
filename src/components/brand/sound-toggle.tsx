@@ -57,7 +57,7 @@ export function SoundToggle() {
         on ? "Silenciar música y sonidos" : "Activar música y sonidos"
       }
       title={on ? "Silenciar" : "Activar sonido"}
-      className="btn-gloss fixed bottom-4 left-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-b from-[#8b7bff] to-[#5a46e0] text-2xl text-white shadow-[0_4px_0_#3a2aa8,0_12px_22px_-8px_rgba(90,70,224,0.7)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+      className="btn-gloss !fixed bottom-4 left-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-b from-[#8b7bff] to-[#5a46e0] text-2xl text-white shadow-[0_4px_0_#3a2aa8,0_12px_22px_-8px_rgba(90,70,224,0.7)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
     >
       <span aria-hidden>{on ? "🔊" : "🔇"}</span>
     </button>

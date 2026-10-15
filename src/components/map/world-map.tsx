@@ -219,8 +219,6 @@ export function WorldMap() {
                 )}
               </g>
             ))}
-
-            <rect width="1000" height="700" fill="var(--map-tint)" />
           </svg>
 
           {/* personajes que pasean por el mapa */}

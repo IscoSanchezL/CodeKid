@@ -421,18 +421,18 @@ body {
 
 /* Tablón de madera para el programa del alumno */
 .plank {
-  color: #0b1440;
-  border-color: #b8860b;
+  color: #0b1440 !important;
+  border-color: #b8860b !important;
   background:
     repeating-linear-gradient(
       90deg,
       rgba(120, 80, 0, 0.07) 0 2px,
       transparent 2px 46px
     ),
-    linear-gradient(180deg, #ffe07a 0%, #f6b90a 100%);
+    linear-gradient(180deg, #ffe07a 0%, #f6b90a 100%) !important;
   box-shadow:
     0 5px 0 0 #b8860b,
-    0 18px 32px -18px rgb(0 0 0 / 0.35);
+    0 18px 32px -18px rgb(0 0 0 / 0.35) !important;
 }
 .plank .text-muted {
   color: rgba(11, 20, 64, 0.72);

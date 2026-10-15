@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { UserBar } from "@/components/brand/user-bar";
@@ -38,11 +39,21 @@ export default function RetoPage({ params }: { params: Params }) {
           </div>
         </div>
       </header>
-      <main className="rise mx-auto max-w-5xl px-4 pb-16 pt-6">
-        <h1 className="mb-1 text-2xl font-extrabold">
-          Reto {level.challenge}: {level.title}
-        </h1>
-        <p className="mb-6 text-muted">Lleva al robot hasta la bandera 🏁</p>
+      <main className="rise mx-auto flex w-full max-w-[1400px] flex-col gap-2 px-4 py-3 lg:h-[calc(100dvh-62px)]">
+        <div className="flex flex-wrap items-baseline gap-x-4">
+          <h1 className="text-xl font-extrabold">
+            Reto {level.challenge}: {level.title}
+          </h1>
+          <p className="text-sm text-muted">
+            Lleva al robot hasta la bandera 🏁
+          </p>
+          <Link
+            href={`/nivel/${level.level}`}
+            className="ml-auto text-sm font-medium text-muted hover:text-fg"
+          >
+            ← Retos del nivel {level.level}
+          </Link>
+        </div>
         <Player level={level} total={challengesOf(level.level).length} />
       </main>
     </>

@@ -11,19 +11,20 @@ const T = 64; // lado de una casilla (px)
 const hash = (x: number, y: number, seed: number) =>
   Math.abs(Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43758.5453) % 1;
 
-function useFit(natW: number) {
+/** Mide el contenedor para que el escenario siempre lo llene por completo. */
+function useBox() {
   const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [size, setSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const update = () => setScale(Math.min(1.7, el.clientWidth / natW));
+    const update = () => setSize({ w: el.clientWidth, h: el.clientHeight });
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [natW]);
-  return { ref, scale };
+  }, []);
+  return { ref, size };
 }
 
 const STAR =
@@ -63,11 +64,16 @@ export function Board({
   const map = useMemo(() => parseLevel(level), [level]);
   const cols = map.width;
   const rows = map.height;
-  const W = Math.max(cols + 3, 7) * T;
-  const H = Math.max(rows + 3, 5) * T;
+  const { ref, size } = useBox();
+  // El escenario se ensancha o alarga para tener la misma forma que su contenedor (el cielo llena todo)
+  const baseW = Math.max(cols + 3, 7) * T;
+  const baseH = Math.max(rows + 3, 5) * T;
+  const aspect = size.w > 0 && size.h > 0 ? size.w / size.h : baseW / baseH;
+  const W = Math.max(baseW, baseH * aspect);
+  const H = W / aspect;
+  const scale = size.w > 0 ? size.w / W : 1;
   const ox = (W - cols * T) / 2;
   const oy = (H - rows * T) / 2;
-  const { ref, scale } = useFit(W);
 
   const cells = useMemo(() => {
     const out: { x: number; y: number; ch: string }[] = [];
@@ -108,11 +114,11 @@ export function Board({
           !isPath(cx - 1, cy - 1) &&
           !isPath(cx + 1, cy - 1);
         let kind: SkyKind | null = null;
-        if (h < 0.06) kind = tallOk ? "balloon" : null;
-        else if (h < 0.1) kind = tallOk ? "bunch" : null;
-        else if (h < 0.22) kind = "cloud";
-        else if (h < 0.26) kind = "hole";
-        else if (h < 0.28) kind = "butterfly";
+        if (h < 0.025) kind = tallOk ? "balloon" : null;
+        else if (h < 0.04) kind = tallOk ? "bunch" : null;
+        else if (h < 0.15) kind = "cloud";
+        else if (h < 0.18) kind = "hole";
+        else if (h < 0.19) kind = "butterfly";
         if (!kind) continue;
         items.push({
           key: `${cx},${cy}`,
@@ -146,9 +152,8 @@ export function Board({
   return (
     <div
       ref={ref}
-      className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border-4 border-white shadow-card"
+      className="absolute inset-0 overflow-hidden rounded-3xl border-4 border-white shadow-card"
       style={{
-        height: H * scale,
         background: "linear-gradient(180deg,#c4f1ff,#a6e6fa)",
       }}
     >
@@ -156,12 +161,13 @@ export function Board({
         style={{
           position: "absolute",
           left: "50%",
-          top: 0,
+          top: "50%",
+          marginTop: -H / 2,
           marginLeft: -W / 2,
           width: W,
           height: H,
           transform: `scale(${scale})`,
-          transformOrigin: "50% 0",
+          transformOrigin: "50% 50%",
         }}
       >
         <svg
@@ -316,13 +322,6 @@ export function Board({
           >
             <Flag />
           </g>
-
-          <rect
-            width={W}
-            height={H}
-            fill="var(--map-tint)"
-            pointerEvents="none"
-          />
         </svg>
 
         {/* sombra y personaje */}
