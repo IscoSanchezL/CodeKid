@@ -29,14 +29,14 @@ describe("niveles de referencia", () => {
 
   it("solo los niveles de bucles permiten «repetir»", () => {
     for (const c of CHALLENGES) {
-      expect(c.allowed.includes("repeat")).toBe(c.level >= 2);
+      expect(c.allowed.includes("repeat")).toBe(c.level >= 2 && c.level !== 4 && c.level !== 7);
     }
   });
 });
 
 describe("condicionales", () => {
   it("«si» solo está permitido desde el nivel 3", () => {
-    for (const c of CHALLENGES) expect(c.allowed.includes("if")).toBe(c.level >= 3);
+    for (const c of CHALLENGES) expect(c.allowed.includes("if")).toBe(c.level === 3 || c.level === 7);
   });
 
   it("ejecuta el cuerpo solo si se cumple la condición", () => {
@@ -52,9 +52,9 @@ describe("condicionales", () => {
 
   it("cambia la condición de un «si»", () => {
     const iff = makeBlock("if");
-    expect((iff as Extract<Block, { type: "if" }>).cond).toBe("wall");
+    expect((iff as Extract<Block, { type: "if" }>).cond).toEqual({ a: { kind: "wall", not: false } });
     const p = setCond([iff], iff.id, "free");
-    expect((p[0] as Extract<Block, { type: "if" }>).cond).toBe("free");
+    expect((p[0] as Extract<Block, { type: "if" }>).cond).toEqual({ a: { kind: "free", not: false } });
   });
 
   it("corta los bucles anidados vacíos (no se cuelga)", () => {

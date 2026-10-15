@@ -309,7 +309,7 @@ export function Player({ level, total }: Props) {
             💡 Pista
           </Button>
         </div>
-        <div className="grid min-w-0 flex-1 items-start gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(0,1.7fr)] lg:max-h-[32vh] lg:overflow-y-auto">
+        <div className="grid min-w-0 flex-1 items-start gap-3 md:grid-cols-[minmax(220px,1fr)_minmax(0,1.7fr)] lg:max-h-[38vh] lg:overflow-y-auto">
           <Workspace
             allowed={level.allowed}
             program={program}

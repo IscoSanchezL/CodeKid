@@ -1,5 +1,5 @@
 // GENERADO por scripts/sync-edge-engine.mjs a partir de src/engine/levels.ts. No editar a mano.
-import type { Block, Level } from "./types.ts";
+import type { AtomKind, Block, Level, Turn } from "./types.ts";
 
 // Atajos para escribir las soluciones de referencia
 let n = 0;
@@ -10,12 +10,26 @@ const right = (): Block => ({ id: id(), type: "right" });
 const repeat = (times: number, ...body: Block[]): Block => ({ id: id(), type: "repeat", times, body });
 const ifWall = (...body: Block[]): Block => ({ id: id(), type: "if", cond: "wall", body });
 const ifFree = (...body: Block[]): Block => ({ id: id(), type: "if", cond: "free", body });
+const def = (name: "A" | "B", ...body: Block[]): Block => ({ id: id(), type: "def", name, body });
+const call = (name: "A" | "B"): Block => ({ id: id(), type: "call", name });
+const setv = (value: number): Block => ({ id: id(), type: "setvar", value });
+const addv = (op: "+" | "-" | "*", value: number): Block => ({ id: id(), type: "addvar", op, value });
+const movev = (): Block => ({ id: id(), type: "movevar" });
+const list = (...items: Turn[]): Block => ({ id: id(), type: "list", items });
+const each = (...body: Block[]): Block => ({ id: id(), type: "foreach", body });
+const turn = (): Block => ({ id: id(), type: "turnitem" });
+const whileC = (kind: AtomKind, not: boolean, ...body: Block[]): Block => ({ id: id(), type: "while", cond: { a: { kind, not } }, body });
+const ifC = (kind: AtomKind, not: boolean, ...body: Block[]): Block => ({ id: id(), type: "if", cond: { a: { kind, not } }, body });
 /** Patrón de «camina y gira al chocar»: si hay camino, avanza; si hay pared, gira. */
 const walk = (turn: () => Block): Block[] => [ifFree(move()), ifWall(turn())];
 
 const SEQ: Level["allowed"] = ["move", "left", "right"];
 const LOOP: Level["allowed"] = ["move", "left", "right", "repeat"];
 const LOGIC: Level["allowed"] = ["move", "left", "right", "repeat", "if"];
+const FUNCS: Level["allowed"] = ["move", "left", "right", "def", "call"];
+const VARS: Level["allowed"] = ["move", "left", "right", "repeat", "setvar", "addvar", "movevar"];
+const LISTS: Level["allowed"] = ["move", "left", "right", "repeat", "list", "foreach", "turnitem"];
+const WHILES: Level["allowed"] = ["move", "left", "right", "if", "while"];
 
 export const CHALLENGES: Level[] = [
   // ── Nivel 1 · Secuencias ───────────────────────────────────────────────
@@ -112,6 +126,134 @@ export const CHALLENGES: Level[] = [
     hint: "Gira a la izquierda y recoge las dos monedas por el camino.",
     rows: ["..*..", ".###.", "G###*", "S...."],
     solution: [repeat(2, repeat(7, ...walk(left)))],
+  },
+
+  // ── Nivel 4 · Funciones ────────────────────────────────────────────────
+  {
+    level: 4, challenge: 1, title: "Mi primer bloque", par: 10, startDir: 1, allowed: FUNCS,
+    hint: "Crea el bloque A con dos pasos y úsalo cada vez que lo necesites.",
+    rows: ["S..##", "##.##", "##...", "####.", "####G"],
+    solution: [def("A", move(), move()), call("A"), right(), call("A"), left(), call("A"), right(), call("A")],
+  },
+  {
+    level: 4, challenge: 2, title: "Escalón", par: 9, startDir: 1, allowed: FUNCS,
+    hint: "Un escalón es avanzar, derecha, avanzar, izquierda. Hazlo un bloque y úsalo 4 veces.",
+    rows: ["S.###", "#..##", "##..#", "###..", "####G"],
+    solution: [def("A", move(), right(), move(), left()), call("A"), call("A"), call("A"), call("A")],
+  },
+  {
+    level: 4, challenge: 3, title: "Bloques con bloques", par: 11, startDir: 1, allowed: FUNCS,
+    hint: "Un bloque puede usar a otro: A es dos pasos y un giro; B es A dos veces.",
+    rows: ["#S..", "###.", "##..", "##.#", "G..#"],
+    solution: [def("A", move(), move(), right()), def("B", call("A"), call("A")), call("B"), move(), left(), call("B")],
+  },
+  {
+    level: 4, challenge: 4, title: "Escalones con monedas", par: 11, startDir: 1, allowed: FUNCS,
+    hint: "Tres escalones con el bloque A y después un tramo recto.",
+    rows: ["S.##", "#.*#", "##..", "###*", "###.", "###G"],
+    solution: [def("A", move(), right(), move(), left()), call("A"), call("A"), call("A"), right(), move(), move()],
+  },
+  {
+    level: 4, challenge: 5, title: "Gran recorrido", par: 12, startDir: 1, allowed: FUNCS,
+    hint: "A son tres pasos; B es A, giro derecha, A y giro izquierda. Usa B tres veces.",
+    rows: ["S...######", "###.######", "###.######", "###....###", "######.###", "######.###", "######....", "#########.", "#########.", "#########G"],
+    solution: [def("A", move(), move(), move()), def("B", call("A"), right(), call("A"), left()), call("B"), call("B"), call("B")],
+  },
+
+  // ── Nivel 5 · Variables y operadores ───────────────────────────────────
+  {
+    level: 5, challenge: 1, title: "Mi primera variable", par: 6, startDir: 1, allowed: VARS,
+    hint: "Pon «pasos = 3» y usa «Avanzar pasos» tres veces, girando entre tramos.",
+    rows: ["S...###", "###.###", "###.###", "###...G"],
+    solution: [setv(3), movev(), right(), movev(), left(), movev()],
+  },
+  {
+    level: 5, challenge: 2, title: "Una espiral", par: 5, startDir: 1, allowed: VARS,
+    hint: "Empieza con pasos = 1 y súmale 1 después de cada giro. Repite 4 veces.",
+    rows: ["G###", ".###", ".#S.", ".##.", "...."],
+    solution: [setv(1), repeat(4, movev(), right(), addv("+", 1))],
+  },
+  {
+    level: 5, challenge: 3, title: "Doblar", par: 5, startDir: 1, allowed: VARS,
+    hint: "Aquí los pasos se multiplican: 1, 2, 4. Usa × 2 después de cada giro.",
+    rows: ["###S.", "####.", "G...."],
+    solution: [setv(1), repeat(3, movev(), right(), addv("*", 2))],
+  },
+  {
+    level: 5, challenge: 4, title: "Restar", par: 5, startDir: 1, allowed: VARS,
+    hint: "Empieza con pasos = 6 y réstale 2 después de cada giro a la izquierda.",
+    rows: ["####G..", "######.", "######.", "######.", "S......"],
+    solution: [setv(6), repeat(3, movev(), left(), addv("-", 2))],
+  },
+  {
+    level: 5, challenge: 5, title: "Espiral grande", par: 5, startDir: 1, allowed: VARS,
+    hint: "La misma espiral del reto 2, pero seis vueltas y con monedas.",
+    rows: ["..*...", ".####.", "*#S*#*", ".##.#.", "..*.#.", "#####.", "#####G"],
+    solution: [setv(1), repeat(6, movev(), right(), addv("+", 1))],
+  },
+
+  // ── Nivel 6 · Listas y datos ───────────────────────────────────────────
+  {
+    level: 6, challenge: 1, title: "Mi primera lista", par: 4, startDir: 1, allowed: LISTS,
+    hint: "Haz una lista de giros: derecha, izquierda, derecha… y recórrela con «Por cada giro».",
+    rows: ["S.##", "#..#", "##..", "###G"],
+    solution: [list("R", "L", "R", "L", "R", "L"), each(move(), turn())],
+  },
+  {
+    level: 6, challenge: 2, title: "Lista larga", par: 4, startDir: 1, allowed: LISTS,
+    hint: "Ocho giros: dos a la derecha, dos a la izquierda, y otra vez.",
+    rows: ["S.", "..", "..", "..", "G#"],
+    solution: [list("R", "R", "L", "L", "R", "R", "L", "L"), each(move(), turn())],
+  },
+  {
+    level: 6, challenge: 3, title: "Dos pasos por giro", par: 5, startDir: 1, allowed: LISTS,
+    hint: "Dentro de «Por cada giro» pon dos «Avanzar» y luego «Girar según el giro». El giro «recto» no gira.",
+    rows: ["S....", "####.", "####.", "####.", "G...."],
+    solution: [list("S", "R", "S", "R", "S", "R"), each(move(), move(), turn())],
+  },
+  {
+    level: 6, challenge: 4, title: "Zigzag doble", par: 5, startDir: 1, allowed: LISTS,
+    hint: "Cuatro giros: derecha, derecha, izquierda, izquierda.",
+    rows: ["S..", "##.", "...", ".##", "G##"],
+    solution: [list("R", "R", "L", "L"), each(move(), move(), turn())],
+  },
+  {
+    level: 6, challenge: 5, title: "Camino secreto", par: 5, startDir: 1, allowed: LISTS,
+    hint: "Ocho giros: R, L, L, R, R, L, R, R. Recoge las dos monedas.",
+    rows: ["S..#...##", "##*#.#.##", "##..*#...", "########.", "########G"],
+    solution: [list("R", "L", "L", "R", "R", "L", "R", "R"), each(move(), move(), turn())],
+  },
+
+  // ── Nivel 7 · Lógica avanzada ──────────────────────────────────────────
+  {
+    level: 7, challenge: 1, title: "Mientras…", par: 2, startDir: 1, allowed: WHILES,
+    hint: "«Mientras hay camino libre» avanza. No hace falta contar los pasos.",
+    rows: ["S........G"],
+    solution: [whileC("free", false, move())],
+  },
+  {
+    level: 7, challenge: 2, title: "Hasta la pared", par: 4, startDir: 1, allowed: WHILES,
+    hint: "Mientras la meta no esté delante: avanza mientras haya camino y gira a la derecha.",
+    rows: ["S.....", "#G###.", "#.###.", "#....."],
+    solution: [whileC("goal", true, whileC("free", false, move()), right())],
+  },
+  {
+    level: 7, challenge: 3, title: "Hacia el otro lado", par: 4, startDir: 1, allowed: WHILES,
+    hint: "El mismo plan, pero las esquinas giran a la izquierda. Recoge las monedas.",
+    rows: ["...*..", ".####.", "G####.", "#S...*"],
+    solution: [whileC("goal", true, whileC("free", false, move()), left())],
+  },
+  {
+    level: 7, challenge: 4, title: "Camino mixto", par: 7, startDir: 1, allowed: WHILES,
+    hint: "Gira a la derecha; si hay pared delante, gira dos veces a la izquierda (así sales por el otro lado).",
+    rows: ["S....##....", "####.##.##.", "####....##G"],
+    solution: [whileC("goal", true, whileC("free", false, move()), right(), ifC("wall", false, left(), left()))],
+  },
+  {
+    level: 7, challenge: 5, title: "El laberinto", par: 7, startDir: 1, allowed: WHILES,
+    hint: "Usa el mismo método del reto anterior. Con él se resuelve cualquier camino de un solo carril.",
+    rows: ["###..*######", "###.#.######", "###.#.##...G", "S..*#.##.###", "#####..*.###"],
+    solution: [whileC("goal", true, whileC("free", false, move()), right(), ifC("wall", false, left(), left()))],
   },
 ];
 

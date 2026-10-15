@@ -1,8 +1,9 @@
 // GENERADO por scripts/sync-edge-engine.mjs a partir de src/engine/program.ts. No editar a mano.
-import type { ActionType, Block, BlockType, Cond, ContainerBlock } from "./types.ts";
+import type { ActionType, Block, BlockType, Cond, CondExpr, ContainerBlock } from "./types.ts";
 
 /** «Repetir» y «Si» llevan otros bloques dentro. */
-export const isContainer = (b: Block): b is ContainerBlock => b.type === "repeat" || b.type === "if";
+export const isContainer = (b: Block): b is ContainerBlock =>
+  b.type === "repeat" || b.type === "if" || b.type === "while" || b.type === "def" || b.type === "foreach";
 
 let counter = 0;
 function nextId() {
@@ -12,7 +13,15 @@ function nextId() {
 
 export function makeBlock(type: BlockType): Block {
   if (type === "repeat") return { id: nextId(), type, times: 2, body: [] };
-  if (type === "if") return { id: nextId(), type, cond: "wall", body: [] };
+  if (type === "if") return { id: nextId(), type, cond: { a: { kind: "wall", not: false } }, body: [] };
+  if (type === "while") return { id: nextId(), type, cond: { a: { kind: "free", not: false } }, body: [] };
+  if (type === "def") return { id: nextId(), type, name: "A", body: [] };
+  if (type === "call") return { id: nextId(), type, name: "A" };
+  if (type === "setvar") return { id: nextId(), type, value: 1 };
+  if (type === "addvar") return { id: nextId(), type, op: "+", value: 1 };
+  if (type === "movevar" || type === "turnitem") return { id: nextId(), type };
+  if (type === "list") return { id: nextId(), type, items: ["R", "L", "S"] };
+  if (type === "foreach") return { id: nextId(), type, body: [] };
   return { id: nextId(), type: type as ActionType };
 }
 
@@ -41,12 +50,21 @@ export function setTimes(program: Block[], id: string, times: number): Block[] {
   });
 }
 
-/** Cambia la condición de un bloque «si». */
-export function setCond(program: Block[], id: string, cond: Cond): Block[] {
+/** Cambia la condición de un bloque «si» o «mientras». */
+export function setCond(program: Block[], id: string, cond: Cond | CondExpr): Block[] {
+  const expr: CondExpr = typeof cond === "string" ? { a: { kind: cond, not: false } } : cond;
   return program.map((b) => {
     if (!isContainer(b)) return b;
-    if (b.id === id && b.type === "if") return { ...b, cond };
+    if (b.id === id && (b.type === "if" || b.type === "while")) return { ...b, cond: expr };
     return { ...b, body: setCond(b.body, id, cond) };
+  });
+}
+
+/** Cambia cualquier ajuste de un bloque (nombre, valor, operación, lista…). Los valores se acotan en el motor. */
+export function setParams(program: Block[], id: string, patch: Record<string, unknown>): Block[] {
+  return program.map((b) => {
+    const next = b.id === id ? ({ ...b, ...patch } as Block) : b;
+    return isContainer(next) ? ({ ...next, body: setParams(next.body, id, patch) } as Block) : next;
   });
 }
 

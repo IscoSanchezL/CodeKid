@@ -28,11 +28,12 @@ import {
   moveBlock,
   removeBlock,
   selfAndInnerIds,
-  setCond,
+  setParams,
   setTimes,
   isContainer,
 } from "@/engine/program";
-import type { Block, BlockType, Cond } from "@/engine/types";
+import type { Block, BlockType } from "@/engine/types";
+import { BlockParams } from "./block-params";
 import { cn } from "@/lib/utils";
 import { blockLabel } from "./program-editor";
 
@@ -51,7 +52,7 @@ type Ctx = {
   setContainer: (id: string | null) => void;
   onRemove: (id: string) => void;
   onTimes: (id: string, times: number) => void;
-  onCond: (id: string, cond: Cond) => void;
+  onParam: (id: string, patch: Record<string, unknown>) => void;
 };
 const WorkspaceCtx = createContext<Ctx | null>(null);
 const useWs = () => {
@@ -168,7 +169,7 @@ export function Workspace({
       onChange(removeBlock(program, id));
     },
     onTimes: (id, n) => onChange(setTimes(program, id, n)),
-    onCond: (id, c) => onChange(setCond(program, id, c)),
+    onParam: (id, patch) => onChange(setParams(program, id, patch)),
   };
 
   return (
@@ -427,18 +428,11 @@ function BlockRow({ block }: { block: Block }) {
           <span>{l.text}</span>
         </span>
 
-        {block.type === "if" && (
-          <select
-            aria-label="Condición"
-            value={block.cond}
-            disabled={!ctx.editing}
-            onChange={(e) => ctx.onCond(block.id, e.target.value as Cond)}
-            className="rounded-lg bg-black/15 px-1 py-0.5 text-sm"
-          >
-            <option value="wall">hay pared adelante</option>
-            <option value="free">hay camino libre</option>
-          </select>
-        )}
+        <BlockParams
+          block={block}
+          disabled={!ctx.editing}
+          onParam={(patch) => ctx.onParam(block.id, patch)}
+        />
         {block.type === "repeat" && (
           <label className="flex items-center gap-1 text-sm">
             <select

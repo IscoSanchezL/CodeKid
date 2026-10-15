@@ -4,7 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { run } from "./engine/interpreter.ts";
 import { getChallenge } from "./engine/levels.ts";
-import type { Block, BlockType } from "./engine/types.ts";
+import type { Atom, AtomKind, Block, BlockType, CondExpr, Turn } from "./engine/types.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -21,6 +21,24 @@ const json = (body: unknown, status = 200) =>
 
 const MAX_BLOCKS = 60;
 const MAX_DEPTH = 4;
+const ATOMS: AtomKind[] = ["wall", "free", "coin", "goal"];
+const TURNS: Turn[] = ["L", "R", "S"];
+
+function cleanAtom(a: unknown): Atom {
+  const o = (a ?? {}) as { kind?: unknown; not?: unknown };
+  return { kind: ATOMS.includes(o.kind as AtomKind) ? (o.kind as AtomKind) : "wall", not: o.not === true };
+}
+
+/** Acepta la condición nueva (con «y», «o», «no») y la antigua (un texto). */
+function cleanCond(c: unknown): CondExpr {
+  if (typeof c === "string") return { a: { kind: c === "free" ? "free" : "wall", not: false } };
+  const o = (c ?? {}) as { a?: unknown; op?: unknown; b?: unknown };
+  const a = cleanAtom(o.a);
+  if ((o.op === "and" || o.op === "or") && o.b) return { a, op: o.op, b: cleanAtom(o.b) };
+  return { a };
+}
+
+const clamp = (v: unknown, lo: number, hi: number, fallback: number) => Math.min(hi, Math.max(lo, Math.round(Number(v)) || fallback));
 
 /** Reconstruye el programa solo con campos y valores permitidos (nunca se confía en lo que llega). */
 function sanitize(input: unknown, allowed: BlockType[], depth = 0, counter = { n: 0 }): Block[] {
@@ -28,19 +46,38 @@ function sanitize(input: unknown, allowed: BlockType[], depth = 0, counter = { n
   return input.map((raw, i) => {
     counter.n += 1;
     if (counter.n > MAX_BLOCKS) throw new Error("Programa demasiado grande");
-    const b = raw as { type?: string; times?: unknown; cond?: unknown; body?: unknown };
+    const b = raw as Record<string, unknown>;
     const type = b?.type as BlockType;
     if (!allowed.includes(type)) throw new Error("Bloque no permitido en este reto");
     const id = `b${depth}-${i}-${counter.n}`;
-    if (type === "if") {
-      const cond = b.cond === "free" ? "free" : "wall";
-      return { id, type, cond, body: sanitize(b.body ?? [], allowed, depth + 1, counter) };
+    const body = () => sanitize(b.body ?? [], allowed, depth + 1, counter);
+    switch (type) {
+      case "if":
+        return { id, type, cond: cleanCond(b.cond), body: body() };
+      case "while":
+        return { id, type, cond: cleanCond(b.cond), body: body() };
+      case "repeat":
+        return { id, type, times: clamp(b.times, 2, 9, 2), body: body() };
+      case "def":
+        return { id, type, name: b.name === "B" ? "B" : "A", body: body() } as Block;
+      case "call":
+        return { id, type, name: b.name === "B" ? "B" : "A" } as Block;
+      case "foreach":
+        return { id, type, body: body() };
+      case "setvar":
+        return { id, type, value: clamp(b.value, 0, 9, 1) };
+      case "addvar":
+        return { id, type, op: b.op === "-" || b.op === "*" ? b.op : "+", value: clamp(b.value, 1, 3, 1) } as Block;
+      case "list": {
+        const items = (Array.isArray(b.items) ? b.items : []).filter((t): t is Turn => TURNS.includes(t as Turn)).slice(0, 12);
+        return { id, type, items: items.length ? items : (["S"] as Turn[]) };
+      }
+      case "movevar":
+      case "turnitem":
+        return { id, type };
+      default:
+        return { id, type } as Block;
     }
-    if (type === "repeat") {
-      const times = Math.min(9, Math.max(2, Math.round(Number(b.times) || 2)));
-      return { id, type, times, body: sanitize(b.body ?? [], allowed, depth + 1, counter) };
-    }
-    return { id, type };
   });
 }
 

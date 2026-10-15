@@ -48,4 +48,44 @@ describe("de bloques a código", () => {
     );
     expect(toCode([iw], "python")).toBe("if hay_pared():\n    girar_derecha()");
   });
+
+  it("bloques, variables, listas y condiciones compuestas", () => {
+    const prog: Block[] = [
+      { id: "d", type: "def", name: "A", body: [mv, rt] },
+      { id: "c", type: "call", name: "A" },
+      { id: "s", type: "setvar", value: 3 },
+      { id: "a", type: "addvar", op: "*", value: 2 },
+      { id: "m", type: "movevar" },
+      { id: "l", type: "list", items: ["R", "S", "L"] },
+      { id: "f", type: "foreach", body: [{ id: "t", type: "turnitem" }] },
+      {
+        id: "w",
+        type: "while",
+        cond: { a: { kind: "goal", not: true }, op: "and", b: { kind: "free", not: false } },
+        body: [mv],
+      },
+    ];
+    expect(toCode(prog, "js")).toBe(
+      [
+        "let pasos = 1;",
+        "function bloqueA() {",
+        "  avanzar();",
+        "  girarDerecha();",
+        "}",
+        "bloqueA();",
+        "pasos = 3;",
+        "pasos = pasos * 2;",
+        "avanzar(pasos);",
+        'let giros = ["derecha", "recto", "izquierda"];',
+        "for (const giro of giros) {",
+        "  girar(giro);",
+        "}",
+        "while (!esLaMeta() && hayCaminoLibre()) {",
+        "  avanzar();",
+        "}",
+      ].join("\n"),
+    );
+    expect(toCode(prog, "python")).toContain("while not es_la_meta() and hay_camino_libre():");
+    expect(toCode(prog, "python")).toContain("def bloque_a():");
+  });
 });

@@ -1,6 +1,6 @@
 // GENERADO por scripts/sync-edge-engine.mjs a partir de src/engine/interpreter.ts. No editar a mano.
 import { countBlocks } from "./program.ts";
-import type { Block, Dir, FailReason, Level, RunResult, Snapshot } from "./types.ts";
+import type { Atom, Block, Cond, CondExpr, Dir, FailReason, FnName, Level, RunResult, Snapshot, Turn } from "./types.ts";
 
 export const MAX_STEPS = 500;
 
@@ -28,10 +28,11 @@ export function parseLevel(level: Level) {
   return { walls, coins, start, goal, width: level.rows[0]?.length ?? 0, height: level.rows.length };
 }
 
-/**
- * Ejecuta el programa y devuelve la traza completa (un Snapshot por acción).
- * Es determinista y no toca el DOM: la interfaz solo reproduce la traza.
- */
+export const MAX_CALL_DEPTH = 24;
+const VAR_MAX = 20;
+
+/** Ejecuta el programa y devuelve la traza completa (un Snapshot por acción).
+ *  Es determinista y no toca el DOM: la interfaz solo reproduce la traza. */
 export function run(level: Level, program: Block[]): RunResult {
   const map = parseLevel(level);
   const blocks = countBlocks(program);
@@ -43,64 +44,149 @@ export function run(level: Level, program: Block[]): RunResult {
   let steps = 0;
   let failure: FailReason | null = null;
   let done = false;
+  // datos del programa: la variable «pasos», la lista de giros y el giro actual
+  let pasos = 1;
+  let list: Turn[] = [];
+  let item: Turn = "S";
+  let depth = 0;
+
+  // Bloques «crear bloque» del nivel principal: se pueden usar desde cualquier parte
+  const defs = new Map<FnName, Block[]>();
+  for (const b of program) if (b.type === "def") defs.set(b.name, b.body);
 
   const snapshots: Snapshot[] = [{ x, y, dir, coins: 0, blockId: null, bump: false }];
-
   const push = (blockId: string, bump = false) => {
     snapshots.push({ x, y, dir, coins: taken.size, blockId, bump });
   };
 
-  const exec = (list: Block[]) => {
-    for (const block of list) {
+  /** Cuenta un paso de ejecución; devuelve false si se pasó del límite. */
+  const tick = () => {
+    steps += 1;
+    if (steps > MAX_STEPS) {
+      failure = "step-limit";
+      return false;
+    }
+    return true;
+  };
+
+  const ahead = () => ({ nx: x + DELTAS[dir].dx, ny: y + DELTAS[dir].dy });
+  const isWall = (nx: number, ny: number) => nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || map.walls.has(`${nx},${ny}`);
+  const atom = (a: Atom): boolean => {
+    const { nx, ny } = ahead();
+    const wall = isWall(nx, ny);
+    const v =
+      a.kind === "wall" ? wall : a.kind === "free" ? !wall : a.kind === "coin" ? map.coins.has(`${nx},${ny}`) && !taken.has(`${nx},${ny}`) : nx === map.goal.x && ny === map.goal.y;
+    return a.not ? !v : v;
+  };
+  const evalCond = (c: Cond | CondExpr): boolean => {
+    if (typeof c === "string") return atom({ kind: c, not: false });
+    const left = atom(c.a);
+    if (!c.b || !c.op) return left;
+    return c.op === "and" ? left && atom(c.b) : left || atom(c.b);
+  };
+
+  /** Un paso hacia delante. Devuelve false si el robot chocó (y marca el fallo). */
+  const stepForward = (blockId: string) => {
+    const { nx, ny } = ahead();
+    if (isWall(nx, ny)) {
+      push(blockId, true);
+      failure = "wall";
+      return false;
+    }
+    x = nx;
+    y = ny;
+    if (map.coins.has(`${x},${y}`)) taken.add(`${x},${y}`);
+    if (x === map.goal.x && y === map.goal.y) done = true;
+    push(blockId);
+    return true;
+  };
+
+  const exec = (list_: Block[]) => {
+    for (const block of list_) {
       if (done || failure) return;
-      if (block.type === "repeat") {
-        for (let i = 0; i < block.times; i++) {
-          steps += 1; // también cuenta cada vuelta, para cortar bucles vacíos anidados
-          if (steps > MAX_STEPS) {
+      switch (block.type) {
+        case "def":
+        case "list":
+          if (block.type === "list") list = block.items;
+          continue;
+        case "repeat":
+          for (let i = 0; i < block.times; i++) {
+            if (!tick()) return;
+            exec(block.body);
+            if (done || failure) return;
+          }
+          continue;
+        case "while": {
+          while (evalCond(block.cond)) {
+            if (!tick()) return;
+            exec(block.body);
+            if (done || failure) return;
+          }
+          continue;
+        }
+        case "if":
+          if (!tick()) return;
+          if (evalCond(block.cond)) exec(block.body);
+          continue;
+        case "call": {
+          const body = defs.get(block.name);
+          if (!tick()) return;
+          if (!body) continue;
+          if (depth >= MAX_CALL_DEPTH) {
             failure = "step-limit";
             return;
           }
-          exec(block.body);
-          if (done || failure) return;
+          depth += 1;
+          exec(body);
+          depth -= 1;
+          continue;
         }
-        continue;
-      }
-      if (block.type === "if") {
-        steps += 1;
-        if (steps > MAX_STEPS) {
-          failure = "step-limit";
-          return;
+        case "foreach": {
+          const saved = item;
+          for (const turn of list) {
+            if (!tick()) return;
+            item = turn;
+            exec(block.body);
+            if (done || failure) return;
+          }
+          item = saved;
+          continue;
         }
-        const nx = x + DELTAS[dir].dx;
-        const ny = y + DELTAS[dir].dy;
-        const wall = nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || map.walls.has(`${nx},${ny}`);
-        if (block.cond === "wall" ? wall : !wall) exec(block.body);
-        continue;
-      }
-
-      steps += 1;
-      if (steps > MAX_STEPS) {
-        failure = "step-limit";
-        return;
-      }
-
-      if (block.type === "left") dir = ((dir + 3) % 4) as Dir;
-      else if (block.type === "right") dir = ((dir + 1) % 4) as Dir;
-      else {
-        const nx = x + DELTAS[dir].dx;
-        const ny = y + DELTAS[dir].dy;
-        const outside = nx < 0 || ny < 0 || nx >= map.width || ny >= map.height;
-        if (outside || map.walls.has(`${nx},${ny}`)) {
-          push(block.id, true);
-          failure = "wall";
-          return;
+        case "setvar":
+          if (!tick()) return;
+          pasos = Math.min(VAR_MAX, Math.max(0, Math.round(block.value)));
+          continue;
+        case "addvar": {
+          if (!tick()) return;
+          const v = Math.min(3, Math.max(1, Math.round(block.value)));
+          const next = block.op === "-" ? pasos - v : block.op === "*" ? pasos * v : pasos + v;
+          pasos = Math.min(VAR_MAX, Math.max(0, next));
+          continue;
         }
-        x = nx;
-        y = ny;
-        if (map.coins.has(`${x},${y}`)) taken.add(`${x},${y}`);
-        if (x === map.goal.x && y === map.goal.y) done = true;
+        case "movevar":
+          for (let i = 0; i < pasos; i++) {
+            if (!tick()) return;
+            if (!stepForward(block.id) || done) return;
+          }
+          continue;
+        case "turnitem":
+          if (!tick()) return;
+          if (item === "L") dir = ((dir + 3) % 4) as Dir;
+          else if (item === "R") dir = ((dir + 1) % 4) as Dir;
+          else continue;
+          push(block.id);
+          continue;
+        case "left":
+        case "right":
+          if (!tick()) return;
+          dir = (block.type === "left" ? (dir + 3) % 4 : (dir + 1) % 4) as Dir;
+          push(block.id);
+          continue;
+        case "move":
+          if (!tick()) return;
+          if (!stepForward(block.id)) return;
+          continue;
       }
-      push(block.id);
     }
   };
 
