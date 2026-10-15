@@ -4,7 +4,7 @@ import { UserBar } from "@/components/brand/user-bar";
 import { Fuzzy, type FuzzyVariant } from "@/components/game/fuzzy";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
-import { Duck, Piece, Pond, type PieceKind } from "@/components/scenery/pieces";
+import { Balloon, Bunch, Butterfly, Cloud, RAINBOW } from "@/components/scenery/sky";
 import { MapNode } from "./map-node";
 import { rng, smoothPath, type Pt } from "./path";
 import { StarsTotal } from "./stars-total";
@@ -23,72 +23,37 @@ const NODES: Pt[] = [
   [380, 140],
 ];
 const ICONS = ["🚩", "🔁", "🔀", "⚙️", "➕", "📋", "🧠", "💻", "🐍", "🏆"];
-const PONDS: Pt[] = [
-  [90, 430],
-  [905, 610],
+const FRIENDS: { variant: FuzzyVariant; x: number; y: number; size: number }[] = [
+  { variant: "rainbow", x: 92, y: 40, size: 54 },
+  { variant: "purple", x: 84, y: 15, size: 52 },
+  { variant: "orange", x: 62, y: 88, size: 50 },
 ];
-const FRIENDS: { variant: FuzzyVariant; x: number; y: number; size: number }[] =
-  [
-    { variant: "rainbow", x: 92, y: 40, size: 54 },
-    { variant: "purple", x: 84, y: 15, size: 52 },
-    { variant: "orange", x: 62, y: 88, size: 50 },
-  ];
 
-const { d: RIVER, samples: RIVER_PTS } = smoothPath(NODES);
+const { d: TRAIL, samples: TRAIL_PTS } = smoothPath(NODES);
 
-type Item = { kind: PieceKind; x: number; y: number; s: number; v: number };
+type Deco = { kind: "balloon" | "bunch" | "cloud" | "butterfly"; x: number; y: number; s: number; v: number };
 
-/** Paisaje repartido al azar (con semilla) evitando el río, las islas y sus carteles. */
-const DECOR: Item[] = (() => {
-  const r = rng(11);
-  const items: Item[] = [];
-  const dist = (a: Pt, bx: number, by: number) =>
-    Math.hypot(a[0] - bx, a[1] - by);
-  for (let tries = 0; tries < 2500 && items.length < 110; tries++) {
+/** Cielo repartido con semilla fija (sin saltos al hidratar), lejos del camino y de las nubes-isla. */
+const DECOR: Deco[] = (() => {
+  const r = rng(23);
+  const items: Deco[] = [];
+  const dist = (a: Pt, bx: number, by: number) => Math.hypot(a[0] - bx, a[1] - by);
+  for (let tries = 0; tries < 2500 && items.length < 46; tries++) {
     const x = 28 + r() * 944;
-    const y = 100 + r() * 585;
+    const y = 90 + r() * 600;
     const roll = r();
-    const kind: PieceKind =
-      roll < 0.16
-        ? "palm"
-        : roll < 0.3
-          ? "tree"
-          : roll < 0.42
-            ? "pine"
-            : roll < 0.54
-              ? "bush"
-              : roll < 0.78
-                ? "flower"
-                : roll < 0.88
-                  ? "rock"
-                  : "tuft";
-    const tall = kind === "palm" || kind === "tree" || kind === "pine";
-    const riverGap = tall ? 56 : 38;
-    const nodeGap = tall ? 112 : 88;
-    if (RIVER_PTS.some((p) => dist(p, x, y) < riverGap)) continue;
-    if (NODES.some((n) => dist(n, x, y) < nodeGap)) continue;
-    if (
-      NODES.some(
-        (n) => Math.abs(x - n[0]) < 96 && y > n[1] + 30 && y < n[1] + 112,
-      )
-    )
-      continue; // carteles
-    if (PONDS.some((p) => Math.abs(x - p[0]) < 70 && Math.abs(y - p[1]) < 46))
-      continue;
-    if (items.some((it) => Math.hypot(it.x - x, it.y - y) < (tall ? 46 : 28)))
-      continue;
-    items.push({
-      kind,
-      x,
-      y,
-      s: kind === "flower" ? 0.9 + r() * 0.5 : 0.8 + r() * 0.5,
-      v: Math.floor(r() * 5),
-    });
+    const kind: Deco["kind"] = roll < 0.34 ? "balloon" : roll < 0.46 ? "bunch" : roll < 0.78 ? "cloud" : "butterfly";
+    const gap = kind === "cloud" ? 70 : 52;
+    if (TRAIL_PTS.some((p) => dist(p, x, y) < gap)) continue;
+    if (NODES.some((n) => dist(n, x, y) < gap + 62)) continue;
+    if (NODES.some((n) => Math.abs(x - n[0]) < 96 && y > n[1] + 30 && y < n[1] + 112)) continue;
+    if (items.some((it) => Math.hypot(it.x - x, it.y - y) < 54)) continue;
+    items.push({ kind, x, y, s: 0.7 + r() * 0.55, v: Math.floor(r() * 6) });
   }
   return items.sort((a, b) => a.y - b.y);
 })();
 
-/** Mapa ilustrado del mundo CodeKid: río, islas por nivel, paisaje y personajes. */
+/** Mapa ilustrado del mundo CodeKid: camino de arco iris, nubes-isla por nivel, globos y personajes. */
 export function WorldMap() {
   return (
     <div>
@@ -123,93 +88,55 @@ export function WorldMap() {
           className="relative mx-auto aspect-[10/7] w-full min-w-[720px] max-w-6xl overflow-hidden rounded-3xl border-4 border-white shadow-card"
           style={{ containerType: "inline-size" }}
         >
-          <svg
-            viewBox="0 0 1000 700"
-            preserveAspectRatio="xMidYMid slice"
-            className="absolute inset-0 h-full w-full"
-            aria-hidden
-          >
+          <svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full" aria-hidden>
             <defs>
-              <linearGradient id="map-grass" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" style={{ stopColor: "var(--map-grass-1)" }} />
-                <stop
-                  offset="100%"
-                  style={{ stopColor: "var(--map-grass-2)" }}
-                />
+              <linearGradient id="sky-bg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7b86f2" />
+                <stop offset="45%" stopColor="#a9b9ff" />
+                <stop offset="100%" stopColor="#dcefff" />
+              </linearGradient>
+              <linearGradient id="sky-ray" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fff" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="#fff" stopOpacity="0" />
               </linearGradient>
             </defs>
-            <rect width="1000" height="700" fill="url(#map-grass)" />
-            <ellipse
-              cx="220"
-              cy="180"
-              rx="260"
-              ry="120"
-              fill="#fff"
-              opacity="0.05"
-            />
-            <ellipse
-              cx="760"
-              cy="560"
-              rx="300"
-              ry="130"
-              fill="#fff"
-              opacity="0.05"
-            />
+            <rect width="1000" height="700" fill="url(#sky-bg)" />
+            {/* rayos de luz */}
+            <polygon points="140,0 260,0 420,700 180,700" fill="url(#sky-ray)" />
+            <polygon points="520,0 600,0 860,700 640,700" fill="url(#sky-ray)" />
+            <polygon points="800,0 880,0 1000,500 1000,700" fill="url(#sky-ray)" opacity="0.7" />
+            {/* mar de nubes abajo */}
+            <ellipse cx="500" cy="720" rx="640" ry="110" fill="#fff" opacity="0.8" />
+            <ellipse cx="180" cy="690" rx="260" ry="70" fill="#fff" opacity="0.9" />
+            <ellipse cx="860" cy="700" rx="280" ry="70" fill="#fff" opacity="0.9" />
 
-            {PONDS.map(([x, y], i) => (
-              <g key={i}>
-                <Pond x={x} y={y} s={1.1} />
-                <Duck x={x + 8} y={y + 4} s={0.9} />
-              </g>
-            ))}
+            {/* camino de arco iris */}
+            <g strokeLinecap="round" strokeLinejoin="round" fill="none">
+              <path d={TRAIL} stroke="#6f7fdc" strokeWidth="64" opacity="0.28" transform="translate(0 8)" />
+              {RAINBOW.map((c, i) => (
+                <path key={c} d={TRAIL} stroke={c} strokeWidth={56 - i * 9} opacity="0.95" />
+              ))}
+              <path className="rainbow-flow" d={TRAIL} stroke="#fff" strokeWidth="4" strokeDasharray="3 40" opacity="0.7" />
+            </g>
 
-            {/* río */}
-            <path
-              d={RIVER}
-              fill="none"
-              stroke="#1f9bd6"
-              strokeWidth="60"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d={RIVER}
-              fill="none"
-              stroke="#59cdf8"
-              strokeWidth="50"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d={RIVER}
-              fill="none"
-              stroke="#a5ebff"
-              strokeWidth="20"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.7"
-            />
-            <path
-              className="map-flow"
-              d={RIVER}
-              fill="none"
-              stroke="#fff"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray="2 28"
-              opacity="0.6"
-            />
-
-            {DECOR.map((it, i) => (
-              <Piece
-                key={i}
-                kind={it.kind}
-                x={it.x}
-                y={it.y}
-                s={it.s}
-                variant={it.v}
-              />
-            ))}
+            {DECOR.map((d, i) => {
+              const motion = i % 2 ? "sky-bob" : "sky-drift";
+              const el =
+                d.kind === "balloon" ? (
+                  <Balloon x={d.x} y={d.y} s={d.s} v={d.v} />
+                ) : d.kind === "bunch" ? (
+                  <Bunch x={d.x} y={d.y} s={d.s} v={d.v} />
+                ) : d.kind === "cloud" ? (
+                  <Cloud x={d.x} y={d.y} s={d.s * 1.2} o={0.88} />
+                ) : (
+                  <Butterfly x={d.x} y={d.y} s={d.s} v={d.v} />
+                );
+              return (
+                <g key={i} className={d.kind === "cloud" ? "sky-drift" : motion} style={{ animationDelay: `${(i % 6) * -1.3}s` }}>
+                  {el}
+                </g>
+              );
+            })}
 
             <rect width="1000" height="700" fill="var(--map-tint)" />
           </svg>

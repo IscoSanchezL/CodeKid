@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseLevel } from "@/engine/interpreter";
 import type { Level, Snapshot } from "@/engine/types";
-import { Duck, Piece, Pond, type PieceKind } from "@/components/scenery/pieces";
+import { RainbowArch, SkyPiece, type SkyKind } from "@/components/scenery/sky";
 import { Fuzzy, type FuzzyVariant, type Outfit } from "./fuzzy";
 
 const T = 64; // lado de una casilla (px)
@@ -82,11 +82,11 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
     return out;
   }, [cells, cols, rows, level, ox, oy]);
 
-  // Paisaje: se reparte por todo el césped (también fuera del mapa) sin tapar el camino
+  // Cielo: globos, nubes y mariposas repartidos fuera del camino (posiciones fijas por reto)
   const decor = useMemo(() => {
     const isPath = (x: number, y: number) => x >= 0 && y >= 0 && x < cols && y < rows && level.rows[y][x] !== "#";
     const seed = level.level * 10 + level.challenge;
-    const items: { key: string; kind: PieceKind; x: number; y: number; s: number; v: number }[] = [];
+    const items: { key: string; kind: SkyKind; x: number; y: number; s: number; v: number }[] = [];
     const minX = -Math.ceil(ox / T);
     const maxX = cols + Math.ceil(ox / T);
     const minY = -Math.ceil(oy / T);
@@ -95,23 +95,19 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
       for (let cx = minX; cx < maxX; cx++) {
         if (isPath(cx, cy)) continue;
         const h = hash(cx, cy, seed);
-        const jx = (hash(cx, cy, seed + 1) - 0.5) * 22;
-        const jy = (hash(cx, cy, seed + 2) - 0.5) * 12;
-        const px = ox + cx * T + T / 2 + jx;
-        const py = oy + cy * T + T * 0.82 + jy;
-        const s = 0.8 + hash(cx, cy, seed + 3) * 0.3;
-        // Los árboles altos no se ponen justo debajo del camino (taparían las casillas)
+        const px = ox + cx * T + T / 2 + (hash(cx, cy, seed + 1) - 0.5) * 24;
+        const py = oy + cy * T + T * 0.8 + (hash(cx, cy, seed + 2) - 0.5) * 12;
+        const s = 0.75 + hash(cx, cy, seed + 3) * 0.3;
+        // Los globos altos no se ponen justo debajo del camino (taparían las casillas)
         const tallOk = !isPath(cx, cy - 1) && !isPath(cx, cy - 2) && !isPath(cx - 1, cy - 1) && !isPath(cx + 1, cy - 1);
-        let kind: PieceKind | null = null;
-        if (h < 0.1) kind = tallOk ? "palm" : "bush";
-        else if (h < 0.2) kind = tallOk ? "tree" : "tuft";
-        else if (h < 0.27) kind = tallOk ? "pine" : "rock";
-        else if (h < 0.4) kind = "bush";
-        else if (h < 0.62) kind = "flower";
-        else if (h < 0.7) kind = "rock";
-        else if (h < 0.86) kind = "tuft";
+        let kind: SkyKind | null = null;
+        if (h < 0.1) kind = tallOk ? "balloon" : "cloud";
+        else if (h < 0.15) kind = tallOk ? "bunch" : "hole";
+        else if (h < 0.28) kind = "cloud";
+        else if (h < 0.34) kind = "butterfly";
+        else if (h < 0.4) kind = "hole";
         if (!kind) continue;
-        items.push({ key: `${cx},${cy}`, kind, x: px, y: py, s, v: Math.floor(h * 50) });
+        items.push({ key: `${cx},${cy}`, kind, x: px, y: kind === "butterfly" ? py - 22 : py, s, v: Math.floor(h * 60) });
       }
     }
     return items.sort((a, b) => a.y - b.y);
@@ -153,8 +149,8 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
         <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="absolute inset-0" role="img" aria-label="Mapa del reto">
           <defs>
             <linearGradient id="bd-grass" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" style={{ stopColor: "var(--map-grass-1)" }} />
-              <stop offset="100%" style={{ stopColor: "var(--map-grass-2)" }} />
+              <stop offset="0%" stopColor="#bfe9ff" />
+              <stop offset="100%" stopColor="#e9f8ff" />
             </linearGradient>
             <linearGradient id="bd-tile" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#c9f7ff" />
@@ -170,16 +166,6 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
           </defs>
 
           <rect width={W} height={H} fill="url(#bd-grass)" />
-          {Array.from({ length: Math.ceil(H / T) }, (_, k) => (
-            <rect key={k} x="0" y={k * T} width={W} height={T / 2} fill="#fff" opacity="0.045" />
-          ))}
-
-          {/* estanque con patito en una esquina libre */}
-          <g>
-            <Pond x={W - 70} y={H - 40} s={0.7} />
-            <Duck x={W - 64} y={H - 38} s={0.6} />
-          </g>
-
           {/* resplandor del camino */}
           <g filter="url(#bd-glow)" opacity="0.75">
             {cells.map(({ x, y }) => (
@@ -200,18 +186,23 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
             );
           })}
 
-          {/* setos en los bordes */}
+          {/* bordes de nube */}
           {hedges.map((h) => (
             <g key={h.key}>
-              <rect x={h.x} y={h.y} width={h.w} height={h.h} rx="7" fill="#2b8a3e" />
-              <rect x={h.x + 1.5} y={h.y + 1.5} width={h.w - 3} height={Math.min(h.h, h.w) / 2.4} rx="4" fill="#51cf66" opacity="0.85" />
+              <rect x={h.x} y={h.y + 2} width={h.w} height={h.h} rx="7" fill="#a9d6f2" />
+              <rect x={h.x} y={h.y} width={h.w} height={h.h} rx="7" fill="#fff" />
             </g>
           ))}
 
           {/* paisaje */}
           {decor.map((d) => (
-            <Piece key={d.key} kind={d.kind} x={d.x} y={d.y} s={d.s} variant={d.v} />
+            <g key={d.key} className={d.kind === "balloon" || d.kind === "bunch" ? "sky-bob" : undefined} style={{ animationDelay: `${(d.v % 5) * -1}s` }}>
+              <SkyPiece kind={d.kind} x={d.x} y={d.y} s={d.s} v={d.v} />
+            </g>
           ))}
+
+          {/* túnel de arco iris sobre la meta */}
+          <RainbowArch x={ox + map.goal.x * T + T / 2} y={oy + map.goal.y * T + 4} r={T * 0.56} w={5.5} />
 
           {/* aro de la meta, estrellas y bandera */}
           <circle
