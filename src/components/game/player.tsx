@@ -80,7 +80,12 @@ export function Player({ level, total }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_minmax(300px,380px)]">
       <section aria-label="Escenario" className="flex flex-col gap-4">
-        <Board level={level} snapshots={snapshots} index={result ? index : 0} />
+        <Board
+          level={level}
+          snapshots={snapshots}
+          index={result ? index : 0}
+          celebrate={finished && result?.status === "win"}
+        />
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           {editing ? (
@@ -158,7 +163,7 @@ export function Player({ level, total }: Props) {
                   type="button"
                   disabled={!editing}
                   onClick={() => edit(addBlock(program, container, makeBlock(t)))}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-2 font-semibold shadow-card transition-transform hover:scale-105 disabled:opacity-40 ${l.color}`}
+                  className={`flex items-center gap-2 rounded-xl px-3 py-2 font-semibold shadow-[0_3px_0_0_rgba(0,0,0,0.25)] transition-transform hover:scale-105 active:translate-y-0.5 disabled:opacity-40 ${l.color}`}
                 >
                   <span aria-hidden>{l.icon}</span>
                   {l.text}

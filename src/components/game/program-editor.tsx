@@ -36,7 +36,7 @@ export function ProgramEditor(props: Props) {
           <li key={b.id}>
             <div
               className={cn(
-                "flex items-center gap-2 rounded-xl px-3 py-2 font-semibold shadow-card transition-all",
+                "flex items-center gap-2 rounded-xl px-3 py-2 font-semibold shadow-[0_3px_0_0_rgba(0,0,0,0.25)] transition-all",
                 label.color,
                 running && "scale-[1.03] ring-4 ring-fg/30",
               )}
