@@ -15,8 +15,6 @@ let sfxBus: GainNode | null = null;
 let enabled = true;
 let musicOn = false;
 let chordTimer: number | null = null;
-let bellTimer: number | null = null;
-let chordIndex = 0;
 
 try {
   enabled = window.localStorage.getItem(KEY) !== "off";
@@ -33,15 +31,98 @@ export function subscribeSound(fn: Listener) {
 }
 const notify = () => listeners.forEach((l) => l());
 
-// Escala pentatónica en Do: nunca suena mal, aunque se combine al azar
 const NOTE = (semi: number) => 261.63 * Math.pow(2, semi / 12);
-const CHORDS = [
-  [0, 4, 7, 11], // Cmaj7
-  [-3, 0, 4, 7], // Am7
-  [-7, -3, 0, 4], // Fmaj7
-  [-5, -1, 2, 7], // G6
-];
-const BELLS = [12, 14, 16, 19, 21, 24];
+
+// ── Música alegre por mundo ─────────────────────────────────────────────
+// Un pequeño «secuenciador» sintetizado: bajo, ukelele, marimba/silbido, sonajero y maderita.
+// Cada mundo cambia tono, velocidad, acordes, melodías e instrumento principal.
+type Chord = { root: number; notes: number[] };
+const I: Chord = { root: 0, notes: [0, 4, 7] };
+const VI: Chord = { root: 9, notes: [9, 12, 16] };
+const IV: Chord = { root: 5, notes: [5, 9, 12] };
+const V: Chord = { root: 7, notes: [7, 11, 14] };
+
+type Lead = "marimba" | "whistle" | "steel";
+type Theme = {
+  bpm: number;
+  key: number; // semitonos sobre Do
+  swing: number; // 0 a 0.2: retrasa las corcheas pares para dar «rebote»
+  prog: Chord[];
+  lead: Lead;
+  strum: "offbeat" | "bounce" | "arp";
+  melodies: (number | null)[][]; // índices de la escala pentatónica (0 a 9)
+};
+
+const THEMES: Record<string, Theme> = {
+  cielo: {
+    bpm: 104,
+    key: 0,
+    swing: 0.06,
+    prog: [I, VI, IV, V],
+    lead: "marimba",
+    strum: "offbeat",
+    melodies: [
+      [4, null, 5, null, 7, null, 5, 4],
+      [7, 6, 5, null, 4, null, 2, null],
+      [2, 4, 5, 7, 5, 4, null, null],
+      [9, null, 7, null, 5, 4, 5, null],
+    ],
+  },
+  pradera: {
+    bpm: 116,
+    key: 7,
+    swing: 0.1,
+    prog: [I, IV, I, V],
+    lead: "whistle",
+    strum: "bounce",
+    melodies: [
+      [5, 5, 7, null, 6, 5, 4, null],
+      [4, null, 5, 7, 9, null, 7, null],
+      [7, 7, 6, 5, 6, null, 4, null],
+      [2, 4, 5, null, 4, 2, 1, null],
+    ],
+  },
+  bosque: {
+    bpm: 100,
+    key: 2,
+    swing: 0.04,
+    prog: [I, VI, IV, V],
+    lead: "marimba",
+    strum: "arp",
+    melodies: [
+      [null, 4, null, 6, null, 7, 6, null],
+      [5, null, 4, null, 2, null, 4, 5],
+      [7, null, 9, null, 7, 6, 5, null],
+      [4, 5, 6, 7, null, 6, 4, null],
+    ],
+  },
+  playa: {
+    bpm: 120,
+    key: 5,
+    swing: 0.12,
+    prog: [I, V, VI, IV],
+    lead: "steel",
+    strum: "offbeat",
+    melodies: [
+      [7, null, 7, 9, 7, null, 5, null],
+      [5, 7, null, 7, 9, null, 7, 5],
+      [4, null, 5, null, 7, 5, 4, null],
+      [9, 7, 5, null, 7, null, 4, null],
+    ],
+  },
+};
+const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
+
+let theme = "cielo";
+let nextTime = 0;
+let step = 0;
+let bar = 0;
+let noiseBuf: AudioBuffer | null = null;
+
+/** Elige la música según el mundo (se aplica en el siguiente compás, sin cortes). */
+export function setMusicTheme(name: string) {
+  if (THEMES[name]) theme = name;
+}
 
 function ensure(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -56,11 +137,11 @@ function ensure(): AudioContext | null {
   master.gain.value = 0.9;
   // un poco de eco para que suene espacioso
   const delay = ctx.createDelay(1);
-  delay.delayTime.value = 0.34;
+  delay.delayTime.value = 0.28;
   const fb = ctx.createGain();
-  fb.gain.value = 0.38;
+  fb.gain.value = 0.25;
   const wet = ctx.createGain();
-  wet.gain.value = 0.35;
+  wet.gain.value = 0.22;
   delay.connect(fb).connect(delay);
   delay.connect(wet).connect(master);
   musicBus = ctx.createGain();
@@ -71,60 +152,134 @@ function ensure(): AudioContext | null {
   sfxBus.gain.value = 0.5;
   sfxBus.connect(master);
   master.connect(ctx.destination);
+  const len = Math.floor(ctx.sampleRate * 0.1);
+  noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
   return ctx;
 }
 
-function playChord() {
+function pluck(
+  freq: number,
+  t: number,
+  dur: number,
+  type: OscillatorType,
+  vol: number,
+  extra?: { harmonic?: number; vibrato?: boolean },
+) {
   if (!ctx || !musicBus) return;
-  const chord = CHORDS[chordIndex % CHORDS.length];
-  chordIndex += 1;
-  const t = ctx.currentTime;
-  const dur = 8;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 900;
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.1, t + 2.5);
-  g.gain.linearRampToValueAtTime(0, t + dur + 1.5);
-  filter.connect(g).connect(musicBus);
-  for (const semi of chord) {
-    for (const detune of [-6, 6]) {
-      const o = ctx.createOscillator();
-      o.type = "triangle";
-      o.frequency.value = NOTE(semi - 12);
-      o.detune.value = detune;
-      o.connect(filter);
-      o.start(t);
-      o.stop(t + dur + 1.6);
-    }
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  g.connect(musicBus);
+  const o = ctx.createOscillator();
+  o.type = type;
+  o.frequency.value = freq;
+  o.connect(g);
+  o.start(t);
+  o.stop(t + dur + 0.05);
+  if (extra?.harmonic) {
+    const h = ctx.createOscillator();
+    const hg = ctx.createGain();
+    h.type = "sine";
+    h.frequency.value = freq * extra.harmonic;
+    hg.gain.value = 0.35;
+    h.connect(hg).connect(g);
+    h.start(t);
+    h.stop(t + dur + 0.05);
+  }
+  if (extra?.vibrato) {
+    const l = ctx.createOscillator();
+    const lg = ctx.createGain();
+    l.frequency.value = 5.5;
+    lg.gain.value = freq * 0.012;
+    l.connect(lg).connect(o.frequency);
+    l.start(t);
+    l.stop(t + dur + 0.05);
   }
 }
 
-function playBell() {
-  if (!ctx || !musicBus) return;
-  const t = ctx.currentTime;
-  const o = ctx.createOscillator();
-  o.type = "sine";
-  o.frequency.value = NOTE(BELLS[Math.floor(Math.random() * BELLS.length)]);
+function noiseHit(t: number, vol: number, hp: number, dur: number) {
+  if (!ctx || !musicBus || !noiseBuf) return;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  f.type = "highpass";
+  f.frequency.value = hp;
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.07, t + 0.03);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
-  o.connect(g).connect(musicBus);
-  o.start(t);
-  o.stop(t + 2.5);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(g).connect(musicBus);
+  src.start(t);
+  src.stop(t + dur + 0.02);
 }
 
-function scheduleBell() {
-  bellTimer = window.setTimeout(
-    () => {
-      if (!musicOn) return;
-      playBell();
-      scheduleBell();
-    },
-    2200 + Math.random() * 3800,
-  );
+function lead(kind: Lead, freq: number, t: number, beat: number) {
+  if (kind === "marimba")
+    pluck(freq, t, beat * 0.9, "sine", 0.2, { harmonic: 4 });
+  else if (kind === "whistle")
+    pluck(freq * 2, t, beat * 1.1, "sine", 0.1, { vibrato: true });
+  else {
+    pluck(freq, t, beat * 1.2, "triangle", 0.15, { harmonic: 2 });
+  }
+}
+
+function scheduleStep(i: number, t: number, th: Theme) {
+  const beat = 60 / th.bpm;
+  const chord = th.prog[bar % th.prog.length];
+  const k = th.key;
+  // bajo: tiempos 1 y 3 (y un saltito antes del compás siguiente)
+  if (i === 0 || i === 4)
+    pluck(NOTE(k + chord.root - 24), t, beat * 0.9, "triangle", 0.3);
+  if (i === 6)
+    pluck(NOTE(k + chord.root - 12), t, beat * 0.4, "triangle", 0.16);
+  // bombo suave y maderita
+  if (i === 0 || i === 4) pluck(110, t, 0.12, "sine", 0.18);
+  if (i === 2 || i === 6) pluck(1500, t, 0.04, "sine", 0.05);
+  // sonajero en cada corchea (más flojo en las pares)
+  noiseHit(t, i % 2 ? 0.035 : 0.06, 6500, 0.05);
+  // ukelele / arpegio
+  const strum = () =>
+    chord.notes.forEach((n, j) =>
+      pluck(NOTE(k + n), t + j * 0.014, beat * 0.45, "triangle", 0.11, {
+        harmonic: 2,
+      }),
+    );
+  if (th.strum === "offbeat" && i % 2 === 1) strum();
+  else if (th.strum === "bounce" && (i % 2 === 1 || i === 0 || i === 4))
+    strum();
+  else if (th.strum === "arp")
+    pluck(
+      NOTE(k + chord.notes[i % 3] + (i % 6 > 2 ? 12 : 0)),
+      t,
+      beat * 0.5,
+      "triangle",
+      0.1,
+      { harmonic: 3 },
+    );
+  // melodía
+  const melody =
+    th.melodies[(Math.floor(bar / 2) + (bar % 2 ? 1 : 0)) % th.melodies.length];
+  const degree = melody[i];
+  if (degree !== null && degree !== undefined)
+    lead(th.lead, NOTE(k + PENTA[degree]), t, beat);
+  // campanita al cambiar de compás
+  if (i === 0 && bar % 4 === 0)
+    pluck(NOTE(k + 24), t + 0.02, 1.2, "sine", 0.05);
+}
+
+function scheduler() {
+  if (!ctx || !musicOn) return;
+  const th = THEMES[theme];
+  const eighth = 60 / th.bpm / 2;
+  while (nextTime < ctx.currentTime + 0.3) {
+    const swung = nextTime + (step % 2 ? eighth * th.swing : 0);
+    scheduleStep(step, swung, th);
+    nextTime += eighth;
+    step = (step + 1) % 8;
+    if (step === 0) bar += 1;
+  }
 }
 
 function startMusic() {
@@ -132,21 +287,22 @@ function startMusic() {
   if (!c || !musicBus || musicOn) return;
   void c.resume();
   musicOn = true;
+  step = 0;
+  bar = 0;
+  nextTime = c.currentTime + 0.1;
   musicBus.gain.cancelScheduledValues(c.currentTime);
-  musicBus.gain.linearRampToValueAtTime(0.55, c.currentTime + 3);
-  playChord();
-  chordTimer = window.setInterval(playChord, 8000);
-  scheduleBell();
+  musicBus.gain.linearRampToValueAtTime(0.5, c.currentTime + 1.5);
+  scheduler();
+  chordTimer = window.setInterval(scheduler, 80);
 }
 
 function stopMusic() {
   if (!ctx || !musicBus) return;
   musicOn = false;
   musicBus.gain.cancelScheduledValues(ctx.currentTime);
-  musicBus.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+  musicBus.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
   if (chordTimer) window.clearInterval(chordTimer);
-  if (bellTimer) window.clearTimeout(bellTimer);
-  chordTimer = bellTimer = null;
+  chordTimer = null;
 }
 
 /** Llamar en el primer toque del usuario: arranca la música si el sonido está activado. */
