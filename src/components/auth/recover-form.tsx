@@ -24,6 +24,7 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")
         setReady(true);
+      if (session?.user.email) setAccount(session.user.email);
     });
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
