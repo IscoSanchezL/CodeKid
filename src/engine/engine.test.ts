@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { run } from "./interpreter";
 import { CHALLENGES } from "./levels";
-import { addBlock, countBlocks, makeBlock, removeBlock, setTimes } from "./program";
+import { addBlock, countBlocks, findBlock, insertAt, locate, makeBlock, moveBlock, removeBlock, setTimes } from "./program";
 import type { Block, Level } from "./types";
 
 const base = CHALLENGES[0] as Level;
@@ -99,5 +99,76 @@ describe("edición del programa", () => {
 
     p = removeBlock(p, rep.id);
     expect(p).toEqual([]);
+  });
+});
+
+describe("arrastrar bloques", () => {
+  const mk = (type: Parameters<typeof makeBlock>[0]) => makeBlock(type);
+  const types = (p: Block[]) => p.map((b) => b.type);
+
+  it("inserta en una posición concreta, incluso dentro de un «repetir»", () => {
+    const [a, b] = [mk("move"), mk("left")];
+    let p = insertAt([], null, 0, a);
+    p = insertAt(p, null, 0, b);
+    expect(types(p)).toEqual(["left", "move"]);
+    p = insertAt(p, null, 99, mk("right")); // fuera de rango: al final
+    expect(types(p)).toEqual(["left", "move", "right"]);
+
+    const rep = mk("repeat");
+    p = insertAt(p, null, 1, rep);
+    p = insertAt(p, rep.id, 0, mk("move"));
+    p = insertAt(p, rep.id, 0, mk("right"));
+    expect(types((p[1] as Extract<Block, { type: "repeat" }>).body)).toEqual(["right", "move"]);
+  });
+
+  it("reordena sin duplicar ni perder bloques (corrige el desplazamiento de índices)", () => {
+    const [a, b, c] = [mk("move"), mk("left"), mk("right")];
+    const p = [a, b, c];
+    expect(types(moveBlock(p, a.id, null, 3))).toEqual(["left", "right", "move"]); // al final
+    expect(types(moveBlock(p, c.id, null, 0))).toEqual(["right", "move", "left"]); // al principio
+    expect(types(moveBlock(p, a.id, null, 1))).toEqual(["move", "left", "right"]); // misma posición
+    expect(types(moveBlock(p, a.id, null, 2))).toEqual(["left", "move", "right"]);
+    expect(countBlocks(moveBlock(p, b.id, null, 0))).toBe(3);
+  });
+
+  it("mete y saca bloques de un «repetir»", () => {
+    const rep = mk("repeat");
+    const m = mk("move");
+    let p: Block[] = [m, rep];
+    p = moveBlock(p, m.id, rep.id, 0);
+    expect(p).toHaveLength(1);
+    expect((p[0] as Extract<Block, { type: "repeat" }>).body).toHaveLength(1);
+    p = moveBlock(p, m.id, null, 1);
+    expect(types(p)).toEqual(["repeat", "move"]);
+    expect((p[0] as Extract<Block, { type: "repeat" }>).body).toHaveLength(0);
+  });
+
+  it("no deja meter un «repetir» dentro de sí mismo ni de sus hijos", () => {
+    const inner = mk("repeat");
+    const outer = { ...(mk("repeat") as Extract<Block, { type: "repeat" }>), body: [inner] };
+    const p: Block[] = [outer];
+    expect(moveBlock(p, outer.id, outer.id, 0)).toBe(p);
+    expect(moveBlock(p, outer.id, inner.id, 0)).toBe(p);
+  });
+
+  it("mover un «repetir» se lleva todo su contenido", () => {
+    const rep = mk("repeat");
+    const m = mk("move");
+    const tail = mk("left");
+    let p: Block[] = [rep, tail];
+    p = insertAt(p, rep.id, 0, m);
+    p = moveBlock(p, rep.id, null, 2);
+    expect(types(p)).toEqual(["left", "repeat"]);
+    expect(countBlocks(p)).toBe(3);
+    expect(locate(p, m.id)).toEqual({ containerId: rep.id, index: 0 });
+  });
+
+  it("localiza y encuentra bloques anidados", () => {
+    const rep = mk("repeat");
+    const m = mk("move");
+    const p = insertAt([rep], rep.id, 0, m);
+    expect(findBlock(p, m.id)?.type).toBe("move");
+    expect(findBlock(p, "nope")).toBeNull();
+    expect(locate(p, "nope")).toBeNull();
   });
 });

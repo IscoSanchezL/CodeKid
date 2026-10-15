@@ -45,3 +45,65 @@ export function containsId(program: Block[], id: string): boolean {
 export function countBlocks(program: Block[]): number {
   return program.reduce((n, b) => n + 1 + (b.type === "repeat" ? countBlocks(b.body) : 0), 0);
 }
+
+/** Busca un bloque por id en cualquier nivel de anidación. */
+export function findBlock(program: Block[], id: string): Block | null {
+  for (const b of program) {
+    if (b.id === id) return b;
+    if (b.type === "repeat") {
+      const inner = findBlock(b.body, id);
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
+/** Dónde está un bloque: en qué contenedor (null = programa principal) y en qué posición. */
+export function locate(
+  program: Block[],
+  id: string,
+  containerId: string | null = null,
+): { containerId: string | null; index: number } | null {
+  for (let i = 0; i < program.length; i++) {
+    const b = program[i];
+    if (b.id === id) return { containerId, index: i };
+    if (b.type === "repeat") {
+      const inner = locate(b.body, id, b.id);
+      if (inner) return inner;
+    }
+  }
+  return null;
+}
+
+/** Inserta un bloque en una posición concreta del programa principal (containerId = null) o de un «repetir». */
+export function insertAt(program: Block[], containerId: string | null, index: number, block: Block): Block[] {
+  if (containerId === null) {
+    const at = Math.max(0, Math.min(program.length, index));
+    return [...program.slice(0, at), block, ...program.slice(at)];
+  }
+  return program.map((b) => {
+    if (b.type !== "repeat") return b;
+    if (b.id === containerId) return { ...b, body: insertAt(b.body, null, index, block) };
+    return { ...b, body: insertAt(b.body, containerId, index, block) };
+  });
+}
+
+/** Ids de un bloque y de todo lo que lleva dentro: un «repetir» no puede soltarse dentro de sí mismo. */
+export function selfAndInnerIds(block: Block): Set<string> {
+  const ids = new Set<string>([block.id]);
+  if (block.type === "repeat") for (const child of block.body) selfAndInnerIds(child).forEach((i) => ids.add(i));
+  return ids;
+}
+
+/**
+ * Mueve un bloque (con todo su contenido) a otra posición. `toIndex` se refiere a la lista ANTES de
+ * sacar el bloque, que es lo que ve el usuario al arrastrar; aquí se corrige el desplazamiento.
+ */
+export function moveBlock(program: Block[], id: string, toContainerId: string | null, toIndex: number): Block[] {
+  const block = findBlock(program, id);
+  const from = locate(program, id);
+  if (!block || !from) return program;
+  if (toContainerId !== null && selfAndInnerIds(block).has(toContainerId)) return program;
+  const index = from.containerId === toContainerId && from.index < toIndex ? toIndex - 1 : toIndex;
+  return insertAt(removeBlock(program, id), toContainerId, index, block);
+}

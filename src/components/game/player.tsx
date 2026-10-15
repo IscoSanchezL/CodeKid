@@ -5,15 +5,14 @@ import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { parseLevel, run } from "@/engine/interpreter";
-import { addBlock, countBlocks, makeBlock, removeBlock, setTimes } from "@/engine/program";
-import type { Block, BlockType, FailReason, Level, RunResult } from "@/engine/types";
+import type { Block, FailReason, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
 import { queuePending, removePending } from "@/lib/pending-results";
 import { submitResult, SubmitError, type Reward } from "@/lib/wallet";
 import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
 import type { FuzzyVariant } from "./fuzzy";
-import { blockLabel, ProgramEditor } from "./program-editor";
+import { Workspace } from "./workspace";
 
 const FAIL_TEXT: Record<FailReason, string> = {
   wall: "¡Ups! Chocaste con una pared. Revisa tus giros.",
@@ -26,7 +25,6 @@ type Props = { level: Level; total: number };
 
 export function Player({ level, total }: Props) {
   const [program, setProgram] = useState<Block[]>([]);
-  const [container, setContainer] = useState<string | null>(null);
   const [result, setResult] = useState<RunResult | null>(null);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -207,64 +205,7 @@ export function Player({ level, total }: Props) {
       </section>
 
       <aside className="flex flex-col gap-4" aria-label="Programa">
-        <Card className="p-4">
-          <h2 className="mb-3 flex items-center justify-between font-bold">
-            Bloques
-            <span className="text-sm font-medium text-muted">{countBlocks(program)} usados</span>
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {level.allowed.map((t: BlockType) => {
-              const l = blockLabel(t);
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  disabled={!editing}
-                  onClick={() => edit(addBlock(program, container, makeBlock(t)))}
-                  className={`flex items-center gap-2 rounded-xl px-3 py-2 font-semibold shadow-[0_3px_0_0_rgba(0,0,0,0.25)] transition-transform hover:scale-105 active:translate-y-0.5 disabled:opacity-40 ${l.color}`}
-                >
-                  <span aria-hidden>{l.icon}</span>
-                  {l.text}
-                </button>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card className="plank min-h-48 p-4">
-          <h2 className="mb-3 flex items-center justify-between font-bold">
-            Mi programa
-            {program.length > 0 && editing && (
-              <button
-                type="button"
-                className="text-sm font-medium text-danger"
-                onClick={() => {
-                  setProgram([]);
-                  setContainer(null);
-                }}
-              >
-                Borrar todo
-              </button>
-            )}
-          </h2>
-          {program.length === 0 && (
-            <p className="rounded-xl border-2 border-dashed border-border p-6 text-center text-muted">
-              Pulsa los bloques de arriba para armar tu programa.
-            </p>
-          )}
-          <ProgramEditor
-            blocks={program}
-            runningId={runningId}
-            containerId={container}
-            disabled={!editing}
-            onSelectContainer={setContainer}
-            onRemove={(id) => {
-              if (id === container) setContainer(null);
-              edit(removeBlock(program, id));
-            }}
-            onTimes={(id, n) => edit(setTimes(program, id, n))}
-          />
-        </Card>
+        <Workspace allowed={level.allowed} program={program} onChange={edit} editing={editing} runningId={runningId} />
 
         <Link href={`/nivel/${level.level}`} className="text-center text-sm font-medium text-muted hover:text-fg">
           ← Todos los retos del nivel {level.level}
