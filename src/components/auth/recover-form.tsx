@@ -16,6 +16,7 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(mode === "request");
   const [account, setAccount] = useState<string | null>(null);
+  const [waited, setWaited] = useState(false);
 
   // Al llegar desde el enlace del correo, Supabase abre una sesión de recuperación
   useEffect(() => {
@@ -32,7 +33,7 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
         setAccount(data.session.user.email ?? null);
       }
     });
-    const t = window.setTimeout(() => setReady((r) => r), 4000);
+    const t = window.setTimeout(() => setWaited(true), 3000);
     return () => {
       sub.subscription.unsubscribe();
       window.clearTimeout(t);
@@ -147,7 +148,22 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
     <Card>
       <h1 className="text-2xl font-extrabold">Elige una contraseña nueva</h1>
       {!ready ? (
-        <p className="mt-4 text-muted">Comprobando el enlace…</p>
+        waited ? (
+          <div className="mt-4 flex flex-col gap-3">
+            <p className="rounded-xl bg-warn/15 p-3 text-sm font-medium">
+              No hay una sesión activa ni un enlace de recuperación. Entra con
+              tu correo y contraseña, o pide un enlace nuevo al correo.
+            </p>
+            <Link
+              href="/login"
+              className="text-center font-semibold text-brand"
+            >
+              Ir a entrar
+            </Link>
+          </div>
+        ) : (
+          <p className="mt-4 text-muted">Comprobando el enlace…</p>
+        )
       ) : (
         <form
           onSubmit={onUpdate}

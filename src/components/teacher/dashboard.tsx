@@ -287,6 +287,9 @@ export function TeacherDashboard() {
           >
             Cerrar sesión
           </button>
+          <Link href="/actualizar-clave" className="mt-2 block text-sm font-medium text-brand">
+            Cambiar mi contraseña
+          </Link>
         </Card>
 
         <Card className="p-4">
