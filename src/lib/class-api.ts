@@ -1,13 +1,16 @@
 import { createClient } from "@/lib/supabase/client";
 
-export type Student = { id: string; name: string; avatar: string; hasPin: boolean };
-export type CreatedStudent = { id: string; name: string; avatar: string; pin?: string };
+export type Student = { id: string; name: string; avatar: Record<string, string>; hasPin: boolean; coins?: number };
+export type CreatedStudent = { id: string; name: string; pin?: string };
+
+/** Qué dato falta o es incorrecto en el acceso de un alumno. */
+export type Needs = "password" | "pin";
 
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public needsPin = false,
+    public needs?: Needs,
   ) {
     super(message);
   }
@@ -35,7 +38,7 @@ export async function callClassAccess<T>(body: Record<string, unknown>): Promise
     throw new ApiError("No hay conexión. Revisa tu internet e inténtalo de nuevo.", 0);
   }
 
-  const payload = (await res.json().catch(() => ({}))) as { error?: string; needsPin?: boolean };
-  if (!res.ok) throw new ApiError(payload.error ?? "Algo salió mal", res.status, payload.needsPin === true);
+  const payload = (await res.json().catch(() => ({}))) as { error?: string; needs?: Needs };
+  if (!res.ok) throw new ApiError(payload.error ?? "Algo salió mal", res.status, payload.needs);
   return payload as T;
 }

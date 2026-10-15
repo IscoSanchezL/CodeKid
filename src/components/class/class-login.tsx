@@ -9,15 +9,20 @@ import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
 import { ApiError, callClassAccess, type Student } from "@/lib/class-api";
 import { createClient } from "@/lib/supabase/client";
 
+type Base = { className: string; needsPassword: boolean; students: Student[] };
 type Step =
   | { name: "code" }
-  | { name: "pick"; className: string; students: Student[] }
-  | { name: "pin"; className: string; students: Student[]; student: Student };
+  | ({ name: "pick" } & Base)
+  | ({ name: "password"; student: Student } & Base)
+  | ({ name: "pin"; student: Student; password?: string } & Base);
+
+const clean = (v: string, max: number) => v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, max);
 
 export function ClassLogin() {
   const router = useRouter();
   const [step, setStep] = useState<Step>({ name: "code" });
   const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,8 +32,11 @@ export function ClassLogin() {
     setError(null);
     setBusy(true);
     try {
-      const r = await callClassAccess<{ classroom: { name: string }; students: Student[] }>({ action: "lookup", code });
-      setStep({ name: "pick", className: r.classroom.name, students: r.students });
+      const r = await callClassAccess<{ classroom: { name: string; needsPassword: boolean }; students: Student[] }>({
+        action: "lookup",
+        code,
+      });
+      setStep({ name: "pick", className: r.classroom.name, needsPassword: r.classroom.needsPassword, students: r.students });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo salió mal");
     } finally {
@@ -36,7 +44,7 @@ export function ClassLogin() {
     }
   }
 
-  async function enter(student: Student, pinValue?: string) {
+  async function enter(student: Student, creds: { password?: string; pin?: string }) {
     setError(null);
     setBusy(true);
     try {
@@ -44,7 +52,7 @@ export function ClassLogin() {
         action: "login",
         code,
         studentId: student.id,
-        pin: pinValue,
+        ...creds,
       });
       const { error: sessionError } = await createClient().auth.setSession(r.session);
       if (sessionError) throw sessionError;
@@ -52,12 +60,16 @@ export function ClassLogin() {
       router.refresh();
     } catch (err) {
       setPin("");
-      if (err instanceof ApiError && err.needsPin && !pinValue && step.name === "pick") {
-        // La lista estaba desactualizada: este alumno ahora pide PIN
-        setStep({ ...step, name: "pin", student });
-      } else {
-        setError(err instanceof Error ? err.message : "Algo salió mal");
+      const base = step.name === "code" ? null : { className: step.className, needsPassword: step.needsPassword, students: step.students };
+      if (err instanceof ApiError && err.needs && base) {
+        // Falta o falló un dato: se vuelve al paso que corresponde, con el mensaje
+        setStep(
+          err.needs === "password"
+            ? { name: "password", student, ...base }
+            : { name: "pin", student, password: creds.password, ...base },
+        );
       }
+      setError(err instanceof Error ? err.message : "Algo salió mal");
     } finally {
       setBusy(false);
     }
@@ -65,12 +77,23 @@ export function ClassLogin() {
 
   function choose(student: Student) {
     if (step.name !== "pick") return;
-    if (student.hasPin) {
+    setError(null);
+    setPassword("");
+    setPin("");
+    const base = { className: step.className, needsPassword: step.needsPassword, students: step.students };
+    if (step.needsPassword) setStep({ name: "password", student, ...base });
+    else if (student.hasPin) setStep({ name: "pin", student, ...base });
+    else void enter(student, {});
+  }
+
+  function submitPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (step.name !== "password" || !password) return;
+    if (step.student.hasPin) {
       setError(null);
-      setPin("");
-      setStep({ ...step, name: "pin", student });
+      setStep({ name: "pin", student: step.student, password, className: step.className, needsPassword: step.needsPassword, students: step.students });
     } else {
-      void enter(student);
+      void enter(step.student, { password });
     }
   }
 
@@ -78,7 +101,15 @@ export function ClassLogin() {
     if (step.name !== "pin" || busy) return;
     const next = (pin + d).slice(0, 4);
     setPin(next);
-    if (next.length === 4) void enter(step.student, next);
+    if (next.length === 4) void enter(step.student, { password: step.password, pin: next });
+  }
+
+  function backToList() {
+    if (step.name === "code") return;
+    setStep({ name: "pick", className: step.className, needsPassword: step.needsPassword, students: step.students });
+    setPassword("");
+    setPin("");
+    setError(null);
   }
 
   if (step.name === "code") {
@@ -93,12 +124,13 @@ export function ClassLogin() {
           <input
             id="code"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8))}
+            onChange={(e) => setCode(clean(e.target.value, 12))}
             autoComplete="off"
             autoCapitalize="characters"
+            spellCheck={false}
             autoFocus
-            placeholder="ABC123"
-            className="h-16 rounded-xl border-2 border-border bg-surface text-center font-mono text-3xl font-bold tracking-[0.3em] text-fg placeholder:text-muted/50"
+            placeholder="KID1A"
+            className="h-16 rounded-xl border-2 border-border bg-surface text-center font-mono text-3xl font-bold uppercase tracking-[0.25em] text-fg placeholder:text-muted/50"
           />
           {error && (
             <p role="alert" className="text-center text-sm font-medium text-danger">
@@ -138,13 +170,8 @@ export function ClassLogin() {
                   onClick={() => choose(s)}
                   className="flex w-full flex-col items-center gap-1 rounded-2xl border border-border bg-surface-2 p-3 transition-transform hover:-translate-y-0.5 hover:border-brand disabled:opacity-50"
                 >
-                  <FuzzyAvatar id={s.id} size={56} />
+                  <FuzzyAvatar id={s.id} avatar={s.avatar} size={56} />
                   <span className="break-words text-center text-sm font-bold">{s.name}</span>
-                  {s.hasPin && (
-                    <span className="text-xs text-muted">
-                      <span aria-hidden>🔒</span> con PIN
-                    </span>
-                  )}
                 </button>
               </li>
             ))}
@@ -169,10 +196,49 @@ export function ClassLogin() {
     );
   }
 
+  if (step.name === "password") {
+    return (
+      <Card className="text-center">
+        <div className="fz-idle mx-auto w-fit">
+          <FuzzyAvatar id={step.student.id} avatar={step.student.avatar} size={110} />
+        </div>
+        <h1 className="mt-2 text-2xl font-extrabold">Hola, {step.student.name}</h1>
+        <p className="mt-1 text-muted">Escribe la clave de tu clase.</p>
+        <form onSubmit={submitPassword} className="mt-5 flex flex-col gap-3">
+          <label className="sr-only" htmlFor="class-password">
+            Clave de la clase
+          </label>
+          <input
+            id="class-password"
+            value={password}
+            onChange={(e) => setPassword(clean(e.target.value, 16))}
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            autoFocus
+            placeholder="1A"
+            className="h-14 rounded-xl border-2 border-border bg-surface text-center font-mono text-2xl font-bold uppercase tracking-[0.2em] text-fg placeholder:text-muted/50"
+          />
+          {error && (
+            <p role="alert" className="text-sm font-medium text-danger">
+              {error}
+            </p>
+          )}
+          <Button type="submit" size="lg" disabled={busy || !password}>
+            {busy ? "Entrando…" : step.student.hasPin ? "Siguiente" : "Entrar"}
+          </Button>
+        </form>
+        <button type="button" onClick={backToList} className="mt-5 text-sm font-medium text-muted hover:text-fg">
+          ← No soy yo
+        </button>
+      </Card>
+    );
+  }
+
   return (
     <Card className="text-center">
       <div className="fz-idle mx-auto w-fit">
-        <FuzzyAvatar id={step.student.id} size={110} />
+        <FuzzyAvatar id={step.student.id} avatar={step.student.avatar} size={110} />
       </div>
       <h1 className="mt-2 text-2xl font-extrabold">Hola, {step.student.name}</h1>
       <p className="mt-1 text-muted">Escribe tu PIN de 4 números.</p>
@@ -199,15 +265,7 @@ export function ClassLogin() {
           0
         </Button>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          setStep({ name: "pick", className: step.className, students: step.students });
-          setPin("");
-          setError(null);
-        }}
-        className="mt-6 text-sm font-medium text-muted hover:text-fg"
-      >
+      <button type="button" onClick={backToList} className="mt-6 text-sm font-medium text-muted hover:text-fg">
         ← No soy yo
       </button>
     </Card>

@@ -35,8 +35,11 @@ function rng(seed: number) {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+export type Outfit = { hat?: string; glasses?: string; neck?: string };
+
 type Props = {
   variant?: FuzzyVariant;
+  outfit?: Outfit;
   dir?: Dir;
   mood?: FuzzyMood;
   size?: number;
