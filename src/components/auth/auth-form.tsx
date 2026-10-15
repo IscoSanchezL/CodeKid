@@ -65,10 +65,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
       router.push(staff ? "/docente" : "/mapa");
       router.refresh();
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
       setError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo completar la operación",
+        /invalid login credentials/i.test(msg)
+          ? "Correo o contraseña incorrectos. Revisa los datos o recupera tu contraseña."
+          : /email not confirmed/i.test(msg)
+            ? "Falta confirmar tu correo. Revisa tu bandeja de entrada."
+            : msg || "No se pudo completar la operación",
       );
     } finally {
       setLoading(false);
@@ -112,6 +115,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
               <option value="guardian">Madre, padre o tutor</option>
             </select>
           </label>
+        )}
+        {isLogin && (
+          <Link
+            href="/recuperar"
+            className="-mt-2 self-end text-sm font-semibold text-brand"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
         )}
         {error && (
           <p role="alert" className="text-sm font-medium text-danger">
