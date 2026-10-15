@@ -15,17 +15,21 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(mode === "request");
+  const [account, setAccount] = useState<string | null>(null);
 
   // Al llegar desde el enlace del correo, Supabase abre una sesión de recuperación
   useEffect(() => {
     if (mode !== "update") return;
     const supabase = createClient();
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")
         setReady(true);
     });
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
+      if (data.session) {
+        setReady(true);
+        setAccount(data.session.user.email ?? null);
+      }
     });
     const t = window.setTimeout(() => setReady((r) => r), 4000);
     return () => {
