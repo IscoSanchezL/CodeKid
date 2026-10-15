@@ -16,8 +16,14 @@ export function smoothPath(pts: readonly Pt[]): { d: string; samples: Pt[] } {
     for (let t = 0; t <= 1; t += 0.05) {
       const u = 1 - t;
       samples.push([
-        u * u * u * p1[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t * t * t * p2[0],
-        u * u * u * p1[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t * t * t * p2[1],
+        u * u * u * p1[0] +
+          3 * u * u * t * c1[0] +
+          3 * u * t * t * c2[0] +
+          t * t * t * p2[0],
+        u * u * u * p1[1] +
+          3 * u * u * t * c1[1] +
+          3 * u * t * t * c2[1] +
+          t * t * t * p2[1],
       ]);
     }
   }

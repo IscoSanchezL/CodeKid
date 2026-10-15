@@ -16,7 +16,10 @@ export function StarsTotal() {
     };
   }, []);
   return (
-    <span className="flex items-center gap-1 font-extrabold" aria-label={`${total} estrellas`}>
+    <span
+      className="flex items-center gap-1 font-extrabold"
+      aria-label={`${total} estrellas`}
+    >
       <span aria-hidden className="text-warn">
         ★
       </span>

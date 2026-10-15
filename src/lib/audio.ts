@@ -329,7 +329,7 @@ export function setAudioVisible(visible: boolean) {
   else void ctx.suspend();
 }
 
-type Sfx = "step" | "turn" | "bump" | "win" | "fail" | "star" | "click";
+type Sfx = "step" | "turn" | "bump" | "win" | "fail" | "star" | "click" | "launch";
 
 function tone(
   freq: number,
@@ -385,6 +385,11 @@ export function sfx(name: Sfx) {
       [0, 4, 7, 12, 16].forEach((n, i) =>
         tone(NOTE(n + 12), i * 0.11, 0.5, "triangle", 0.24),
       );
+      break;
+    case "launch":
+      tone(90, 0, 1.6, "sawtooth", 0.1, 520);
+      tone(180, 0.1, 1.4, "triangle", 0.12, 900);
+      [0, 7, 12].forEach((n, i) => tone(NOTE(n + 12), 2.2 + i * 0.12, 0.4, "sine", 0.16));
       break;
     case "fail":
       tone(NOTE(7), 0, 0.25, "sine", 0.2, NOTE(2));

@@ -1032,3 +1032,11 @@ body::before {
 @keyframes glint { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
 .glint { animation: glint 3.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .rainbow-flow-b, .holo-dash, .glint { animation: none !important; } }
+
+/* Mapa espacial */
+@keyframes meteor { 0% { transform: translate(0, 0); opacity: 0; } 4% { opacity: 1; } 14% { transform: translate(-260px, 130px); opacity: 0; } 100% { transform: translate(-260px, 130px); opacity: 0; } }
+.meteor { animation: meteor 8s ease-in infinite; opacity: 0; }
+@keyframes flame { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.35); } }
+.rocket-flame { animation: flame 0.18s ease-in-out infinite; }
+.rocket-flame.fast { animation-duration: 0.09s; }
+@media (prefers-reduced-motion: reduce) { .meteor, .rocket-flame { animation: none !important; } }

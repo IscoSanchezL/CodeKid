@@ -12,7 +12,13 @@ export function LevelStars({ level }: { level: number }) {
   useEffect(() => {
     let alive = true;
     loadProgress().then((all) => {
-      if (alive) setStars(list.reduce((n, c) => n + (all[progressKey(c.level, c.challenge)] ?? 0), 0));
+      if (alive)
+        setStars(
+          list.reduce(
+            (n, c) => n + (all[progressKey(c.level, c.challenge)] ?? 0),
+            0,
+          ),
+        );
     });
     return () => {
       alive = false;
