@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Sparkles } from "@/components/fx/fx";
 import { Fuzzy, type FuzzyVariant, type Outfit } from "@/components/game/fuzzy";
 import { variantFor } from "@/components/game/fuzzy-avatar";
 import {
@@ -163,7 +164,9 @@ export function ShopView() {
       {/* vestidor */}
       <aside className="flex flex-col gap-4">
         <Card className="scene-sky relative overflow-hidden text-center">
-          <div className="fz-idle mx-auto mt-16 w-fit">
+          <div aria-hidden className="stage-halo" />
+          <Sparkles count={10} />
+          <div className="fz-idle relative mx-auto mt-16 w-fit">
             <Fuzzy
               variant={shown.variant}
               outfit={shown.outfit}
@@ -319,6 +322,8 @@ export function ShopView() {
                   onClick={() => setPicked(item.id)}
                   aria-pressed={picked === item.id}
                   className={`card-3d lift relative flex w-full flex-col items-center gap-1 rounded-2xl border bg-surface p-3 text-center ${
+                    item.rarity === "epico" ? "rare-epico" : item.rarity === "raro" ? "rare-raro" : ""
+                  } ${
                     picked === item.id
                       ? "border-brand ring-2 ring-brand"
                       : "border-border"

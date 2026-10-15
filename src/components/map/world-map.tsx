@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Sparkles } from "@/components/fx/fx";
 import { UserBar } from "@/components/brand/user-bar";
 import { Fuzzy, type FuzzyVariant } from "@/components/game/fuzzy";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
@@ -234,6 +235,7 @@ export function WorldMap() {
             </div>
           ))}
 
+          <Sparkles count={16} />
           <ol className="absolute inset-0">
             {LEVELS.map((l, i) => (
               <MapNode

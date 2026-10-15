@@ -9,6 +9,7 @@ import type { Block, FailReason, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
 import { queuePending, removePending } from "@/lib/pending-results";
 import { logFailedAttempt, submitResult, SubmitError, type Reward } from "@/lib/wallet";
+import { Burst, PopStars } from "@/components/fx/fx";
 import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
 import type { FuzzyVariant } from "./fuzzy";
@@ -162,14 +163,12 @@ export function Player({ level, total }: Props) {
         )}
 
         {finished && result && (
-          <Card className="text-center" role="status">
+          <Card className={`text-center ${result.status === "win" ? "win-card" : ""}`} role="status">
             {result.status === "win" ? (
               <>
-                <p className="text-2xl font-extrabold">¡Lo lograste!</p>
-                <p aria-label={`${result.stars} de 3 estrellas`} className="mt-2 text-4xl">
-                  {"★".repeat(result.stars)}
-                  <span className="opacity-25">{"★".repeat(3 - result.stars)}</span>
-                </p>
+                <Burst />
+                <p className="text-grad text-3xl font-extrabold">¡Lo lograste!</p>
+                <PopStars earned={result.stars} />
                 <ul className="mt-2 text-sm text-muted">
                   <li>Usaste {result.blocks} bloques (lo mejor: {level.par})</li>
                   {result.coinsTotal > 0 && (
@@ -229,7 +228,7 @@ function RewardPanel({ reward }: { reward: Reward }) {
   return (
     <div className="mt-4 rounded-2xl bg-warn/15 p-4" role="status" aria-label={`Ganaste ${total} monedas`}>
       <p className="text-3xl font-extrabold text-warn">
-        <span aria-hidden>🪙</span> +{total}
+        <span aria-hidden className="coin-drop">🪙</span> +{total}
       </p>
       <ul className="mt-1 text-sm text-fg/80">
         {reward.first && <li>Reto superado: +10</li>}

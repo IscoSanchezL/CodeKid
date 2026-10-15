@@ -13,7 +13,13 @@ export function MapNode({ level, title, icon, x, y, open, current }: Props) {
 
   const body = (
     <>
-      <div className="relative">
+      <div className={`relative ${open ? "node-float" : ""}`}>
+        {current && (
+          <>
+            <span aria-hidden className="node-aura" />
+            <span aria-hidden className="node-aura b" />
+          </>
+        )}
         <svg viewBox="0 0 170 120" className="w-full overflow-visible" aria-hidden>
           <ellipse cx="85" cy="64" rx="82" ry="46" fill="#2aa7e0" />
           <ellipse cx="85" cy="62" rx="74" ry="40" fill="#66d3ff" />
