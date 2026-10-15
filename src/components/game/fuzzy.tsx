@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId } from "react";
 import type { Dir } from "@/engine/types";
 import { Glasses, Hat, Neck, NECK_BEHIND, NeckFront } from "./outfits";
 
@@ -26,19 +26,6 @@ const LOOK: Record<Dir, { dx: number; dy: number }> = {
   3: { dx: -6, dy: 0 },
 };
 
-function rng(seed: number) {
-  let a = seed;
-  return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const r2 = (n: number) => Math.round(n * 100) / 100;
-
 export type Outfit = { hat?: string; glasses?: string; neck?: string };
 
 type Props = {
@@ -50,49 +37,24 @@ type Props = {
   className?: string;
 };
 
-/** Personaje peludo con volumen (degradados, pelaje, brillo) dibujado en SVG. */
+/** Bit: robot-chip de píxeles con cara de pantalla y el símbolo </> en la frente. SVG con degradados (sin filtros pesados). */
 export function Fuzzy({ variant = "cyan", outfit, dir = 2, mood = "idle", size = 80, className }: Props) {
   const uid = useId().replace(/:/g, "");
   const c = PALETTE[variant];
   const look = LOOK[dir];
-
-  const lite = size <= 64;
-  const fur = useMemo(() => {
-    const rand = rng(variant.length * 97 + 13);
-    const strokes: { d: string; tone: "light" | "dark"; w: number; o: number }[] = [];
-    for (let i = 0; i < (lite ? 36 : 120); i++) {
-      const ang = rand() * Math.PI * 2;
-      const rad = 8 + rand() * 33;
-      const len = 5 + rand() * 9;
-      const bend = (rand() - 0.5) * 6;
-      const x1 = 50 + Math.cos(ang) * rad;
-      const y1 = 52 + Math.sin(ang) * rad;
-      const x2 = 50 + Math.cos(ang) * (rad + len);
-      const y2 = 52 + Math.sin(ang) * (rad + len);
-      const cx = (x1 + x2) / 2 + Math.cos(ang + 1.57) * bend;
-      const cy = (y1 + y2) / 2 + Math.sin(ang + 1.57) * bend;
-      strokes.push({
-        d: `M${r2(x1)} ${r2(y1)} Q${r2(cx)} ${r2(cy)} ${r2(x2)} ${r2(y2)}`,
-        tone: rand() > 0.5 ? "light" : "dark",
-        w: r2(1.4 + rand() * 1.6),
-        o: r2(0.25 + rand() * 0.35),
-      });
-    }
-    return strokes;
-  }, [variant, lite]);
-
-  const eyeY = 47;
-  const fx = look.dx * 0.8;
-  const fy = look.dy * 0.8;
+  const fx = look.dx * 0.6;
+  const fy = look.dy * 0.6;
+  const glow = variant === "rainbow" ? "#8af0ff" : c.light;
+  const eyeH = mood === "happy" ? 16 : 20;
 
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} role="img" aria-label="Personaje" overflow="visible">
       <defs>
-        <radialGradient id={`body-${uid}`} cx="36%" cy="28%" r="80%">
+        <linearGradient id={`body-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={c.light} />
-          <stop offset="55%" stopColor={c.base} />
+          <stop offset="45%" stopColor={c.base} />
           <stop offset="100%" stopColor={c.dark} />
-        </radialGradient>
+        </linearGradient>
         {variant === "rainbow" && (
           <linearGradient id={`rb-${uid}`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#FF5C5C" />
@@ -103,75 +65,67 @@ export function Fuzzy({ variant = "cyan", outfit, dir = 2, mood = "idle", size =
             <stop offset="100%" stopColor="#A56BFF" />
           </linearGradient>
         )}
-        <filter id={`fur-${uid}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="4" result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-        <clipPath id={`clip-${uid}`}>
-          <circle cx="50" cy="52" r="41" />
-        </clipPath>
       </defs>
 
       {outfit?.neck && NECK_BEHIND.has(outfit.neck) && <Neck id={outfit.neck} />}
 
-      <g filter={lite ? undefined : `url(#fur-${uid})`}>
-        <circle cx="50" cy="52" r="40" fill={`url(#body-${uid})`} />
-        {variant === "rainbow" && (
-          <circle cx="50" cy="52" r="40" fill={`url(#rb-${uid})`} opacity="0.85" />
-        )}
-        <g clipPath={`url(#clip-${uid})`}>
-          {fur.map((s, i) => (
-            <path
-              key={i}
-              d={s.d}
-              fill="none"
-              strokeLinecap="round"
-              strokeWidth={s.w}
-              stroke={s.tone === "light" ? c.light : c.dark}
-              opacity={s.o}
-            />
-          ))}
-        </g>
-      </g>
+      {/* patitas */}
+      <rect x="27" y="82" width="17" height="15" rx="5" fill={c.dark} />
+      <rect x="56" y="82" width="17" height="15" rx="5" fill={c.dark} />
+
+      {/* cuerpo */}
+      <rect x="10" y="12" width="80" height="78" rx="22" fill={`url(#body-${uid})`} />
+      {variant === "rainbow" && <rect x="10" y="12" width="80" height="78" rx="22" fill={`url(#rb-${uid})`} opacity="0.85" />}
+      <rect x="10" y="12" width="80" height="78" rx="22" fill="none" stroke="#fff" strokeOpacity="0.45" strokeWidth="2" />
 
       {outfit?.neck && <NeckFront id={outfit.neck} />}
 
-      {/* sombra interior y brillo para dar volumen */}
-      <ellipse cx="34" cy="30" rx="15" ry="9" fill="#fff" opacity="0.22" transform="rotate(-25 34 30)" />
+      {/* símbolo de código en la frente */}
+      <text x="50" y="25" textAnchor="middle" fontSize="11" fontWeight="800" fontFamily="monospace" fill="#fff" fillOpacity="0.92">
+        {"</>"}
+      </text>
 
-      <g transform={`translate(${fx} ${fy})`}>
+      {/* pantalla */}
+      <rect x="19" y="29" width="62" height="52" rx="14" fill="#08123a" />
+      <rect x="19" y="29" width="62" height="52" rx="14" fill="none" stroke={glow} strokeOpacity="0.35" strokeWidth="1.5" />
+
+      <g transform={`translate(${fx} ${fy})`} fill={glow}>
         {mood === "bump" ? (
-          <>
-            <path d="M31 41 L43 47 L31 53" fill="none" stroke="#1a1030" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M69 41 L57 47 L69 53" fill="none" stroke="#1a1030" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            <ellipse cx="50" cy="68" rx="6" ry="7" fill="#3a0f1f" />
-          </>
+          <g stroke={glow} strokeWidth="4" strokeLinecap="round">
+            <path d="M28 38 L42 54 M42 38 L28 54" />
+            <path d="M58 38 L72 54 M72 38 L58 54" />
+            <rect x="42" y="64" width="16" height="6" rx="2" stroke="none" />
+          </g>
         ) : (
           <>
-            {[36, 64].map((x) => (
-              <g key={x}>
-                <ellipse cx={x} cy={eyeY} rx="11" ry="12.5" fill="#fff" />
-                <ellipse cx={x} cy={eyeY} rx="11" ry="12.5" fill="none" stroke="#000" strokeOpacity="0.12" strokeWidth="1" />
-                <circle cx={x + look.dx * 0.55} cy={eyeY + look.dy * 0.55 + 1} r="6.2" fill="#1a1030" />
-                <circle cx={x + look.dx * 0.55 - 2} cy={eyeY + look.dy * 0.55 - 2} r="2.1" fill="#fff" />
-              </g>
-            ))}
+            <rect x="28" y={47 - eyeH / 2} width="14" height={eyeH} rx="4" />
+            <rect x="58" y={47 - eyeH / 2} width="14" height={eyeH} rx="4" />
+            <rect x="28" y={47 - eyeH / 2} width="5" height="5" rx="1.5" fill="#fff" fillOpacity="0.8" />
+            <rect x="58" y={47 - eyeH / 2} width="5" height="5" rx="1.5" fill="#fff" fillOpacity="0.8" />
             {mood === "happy" ? (
               <>
-                <path d="M34 61 Q50 86 66 61 Q50 67 34 61 Z" fill="#3a0f1f" />
-                <ellipse cx="50" cy="73" rx="8" ry="4" fill="#FF7A9C" />
+                <rect x="30" y="62" width="7" height="6" />
+                <rect x="63" y="62" width="7" height="6" />
+                <rect x="37" y="68" width="26" height="6" />
               </>
             ) : (
               <>
-                <path d="M38 62 Q50 76 62 62 Q50 67 38 62 Z" fill="#3a0f1f" />
-                <ellipse cx="50" cy="70" rx="5.5" ry="2.8" fill="#FF7A9C" />
+                <rect x="36" y="62" width="7" height="6" />
+                <rect x="57" y="62" width="7" height="6" />
+                <rect x="43" y="68" width="14" height="5" />
               </>
             )}
-            <ellipse cx="24" cy="62" rx="5" ry="3" fill="#FF8FB0" opacity="0.45" />
-            <ellipse cx="76" cy="62" rx="5" ry="3" fill="#FF8FB0" opacity="0.45" />
           </>
         )}
         {outfit?.glasses && mood !== "bump" && <Glasses id={outfit.glasses} />}
+      </g>
+
+      {/* brillo y píxeles decorativos */}
+      <rect x="18" y="16" width="22" height="5" rx="2.5" fill="#fff" fillOpacity="0.4" />
+      <g fill="#fff" fillOpacity="0.55">
+        <rect x="16" y="84" width="4" height="4" />
+        <rect x="23" y="84" width="4" height="4" fillOpacity="0.5" />
+        <rect x="80" y="84" width="4" height="4" fillOpacity="0.5" />
       </g>
 
       {outfit?.hat && <Hat id={outfit.hat} />}

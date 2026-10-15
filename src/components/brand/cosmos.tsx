@@ -186,7 +186,7 @@ export function CosmosSky({ children, className = "" }: { children?: React.React
 
       <Planets />
 
-      {/* astronautas peludos */}
+      {/* astronautas Bit */}
       {ASTRONAUTS.map((a, i) => (
         <div key={i} aria-hidden className={`cosmos-layer pointer-events-none absolute ${a.cls}`} style={{ ["--depth" as string]: a.depth }}>
           <div className="cosmos-drift" style={{ animationDuration: `${a.dur}s`, animationDelay: `${a.delay}s` }}>
