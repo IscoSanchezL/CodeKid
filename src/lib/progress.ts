@@ -35,6 +35,11 @@ function writeLocal(all: ProgressMap) {
 // Evita pedir lo mismo varias veces en una pantalla con muchas tarjetas
 let cache: { userId: string | null; at: number; promise: Promise<ProgressMap> } | null = null;
 
+/** Olvida lo cargado: se usa justo después de guardar un resultado. */
+export function invalidateProgress() {
+  cache = null;
+}
+
 /** Estrellas por reto del usuario actual (Supabase si hay sesión; si no, este navegador). */
 export async function loadProgress(): Promise<ProgressMap> {
   const userId = await currentUserId();

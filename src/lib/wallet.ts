@@ -1,4 +1,5 @@
 import type { Block } from "@/engine/types";
+import { invalidateProgress } from "@/lib/progress";
 import { createClient } from "@/lib/supabase/client";
 
 export type Avatar = Record<string, string>;
@@ -69,13 +70,28 @@ export async function equipItem(slot: string, item: string | null): Promise<Avat
   return (data as Avatar | null) ?? {};
 }
 
+/** Fallo al guardar un resultado. `retryable` = tiene sentido reintentar más tarde (sin red, servidor caído, sesión caducada). */
+export class SubmitError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+  get retryable() {
+    return this.status === 0 || this.status === 401 || this.status === 429 || this.status >= 500;
+  }
+}
+
 /** Envía el programa al servidor, que lo comprueba con el mismo motor y reparte las monedas. */
 export async function submitResult(level: number, challenge: number, program: Block[]): Promise<SubmitResponse> {
   const supabase = createClient();
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  if (!token) throw new Error("Sin sesión");
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/submit-result`, {
+  if (!token) throw new SubmitError("Sin sesión", 401);
+  let res: Response;
+  try {
+    res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/submit-result`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -83,9 +99,13 @@ export async function submitResult(level: number, challenge: number, program: Bl
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ level, challenge, program }),
-  });
+    });
+  } catch {
+    throw new SubmitError("No hay conexión con el servidor", 0);
+  }
   const payload = (await res.json().catch(() => ({}))) as SubmitResponse & { error?: string };
-  if (!res.ok) throw new Error(payload.error ?? "No se pudo guardar el progreso");
+  if (!res.ok) throw new SubmitError(payload.error ?? "No se pudo guardar el progreso", res.status);
+  invalidateProgress();
   notifyWallet();
   return payload;
 }

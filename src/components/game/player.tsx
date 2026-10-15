@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,7 +8,8 @@ import { parseLevel, run } from "@/engine/interpreter";
 import { addBlock, countBlocks, makeBlock, removeBlock, setTimes } from "@/engine/program";
 import type { Block, BlockType, FailReason, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
-import { submitResult, type Reward } from "@/lib/wallet";
+import { queuePending, removePending } from "@/lib/pending-results";
+import { submitResult, SubmitError, type Reward } from "@/lib/wallet";
 import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
 import type { FuzzyVariant } from "./fuzzy";
@@ -33,7 +34,8 @@ export function Player({ level, total }: Props) {
   const saved = useRef(false);
   const { wallet, ready } = useWallet();
   const [reward, setReward] = useState<Reward | null>(null);
-  const [rewardError, setRewardError] = useState<string | null>(null);
+  const [save, setSave] = useState<"idle" | "saving" | "saved" | "queued" | "error">("idle");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const isStudent = wallet?.role === "student";
   const variant = (wallet?.avatar.variant as FuzzyVariant | undefined) ?? "cyan";
   const outfit = { hat: wallet?.avatar.hat, glasses: wallet?.avatar.glasses, neck: wallet?.avatar.neck };
@@ -55,6 +57,28 @@ export function Player({ level, total }: Props) {
     return () => window.clearTimeout(t);
   }, [playing, index, result]);
 
+  /** Guarda el resultado en el servidor. Si falla de forma temporal, lo deja en cola para reintentar solo. */
+  const persist = useCallback(async () => {
+    if (!wallet) return;
+    setSave("saving");
+    setSaveMessage(null);
+    try {
+      const r = await submitResult(level.level, level.challenge, program);
+      removePending({ userId: wallet.id, level: level.level, challenge: level.challenge });
+      setReward(r.reward);
+      setSave("saved");
+    } catch (e) {
+      const err = e instanceof SubmitError ? e : new SubmitError("No se pudo guardar el progreso", 0);
+      if (err.retryable) {
+        queuePending({ userId: wallet.id, level: level.level, challenge: level.challenge, program });
+        setSave("queued");
+      } else {
+        setSave("error");
+      }
+      setSaveMessage(err.message);
+    }
+  }, [wallet, level, program]);
+
   useEffect(() => {
     if (!(finished && result?.status === "win") || saved.current || !ready) return;
     saved.current = true;
@@ -63,11 +87,9 @@ export function Player({ level, total }: Props) {
       void saveResult(level.level, level.challenge, result.stars, result.blocks);
       return;
     }
-    // Con sesión: el servidor vuelve a ejecutar el programa y, si es válido, guarda y paga
-    submitResult(level.level, level.challenge, program)
-      .then((r) => setReward(r.reward))
-      .catch((e: unknown) => setRewardError(e instanceof Error ? e.message : "No se pudo guardar el progreso"));
-  }, [finished, result, level, wallet, ready, program]);
+    // Solo los alumnos guardan progreso; un docente que prueba el reto no
+    if (wallet.role === "student") void persist();
+  }, [finished, result, level, wallet, ready, persist]);
 
   const editing = !playing && result === null;
 
@@ -81,13 +103,15 @@ export function Player({ level, total }: Props) {
     setIndex(0);
     saved.current = false;
     setReward(null);
-    setRewardError(null);
+    setSave("idle");
+    setSaveMessage(null);
   }
 
   function execute() {
     saved.current = false;
     setReward(null);
-    setRewardError(null);
+    setSave("idle");
+    setSaveMessage(null);
     const r = run(level, program);
     setResult(r);
     setIndex(0);
@@ -147,12 +171,13 @@ export function Player({ level, total }: Props) {
                     </li>
                   )}
                 </ul>
-                {rewardError && (
-                  <p role="alert" className="mt-3 text-sm font-medium text-danger">
-                    {rewardError}
+                {isStudent && <SaveStatus state={save} message={saveMessage} onRetry={() => void persist()} />}
+                {isStudent && reward && <RewardPanel reward={reward} />}
+                {ready && wallet && !isStudent && (
+                  <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
+                    Estás probando como docente: aquí no se guardan estrellas ni monedas.
                   </p>
                 )}
-                {isStudent && reward && <RewardPanel reward={reward} />}
                 {ready && !wallet && (
                   <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
                     Entra con el código de tu clase para guardar tu progreso y ganar monedas 🪙
@@ -268,6 +293,28 @@ function RewardPanel({ reward }: { reward: Reward }) {
           Ir a la tienda
         </Link>
       </p>
+    </div>
+  );
+}
+
+function SaveStatus({ state, message, onRetry }: { state: "idle" | "saving" | "saved" | "queued" | "error"; message: string | null; onRetry: () => void }) {
+  if (state === "idle") return null;
+  if (state === "saving") return <p role="status" className="mt-3 text-sm font-medium text-muted">Guardando tus estrellas…</p>;
+  if (state === "saved") return <p role="status" className="mt-3 text-sm font-bold text-success">✔ Estrellas guardadas</p>;
+  return (
+    <div role="alert" className="mt-3 rounded-xl bg-warn/20 p-3 text-sm">
+      <p className="font-bold">
+        {state === "queued" ? "No pudimos guardar tus estrellas ahora." : "No se pudo guardar tu resultado."}
+      </p>
+      <p className="mt-1 text-fg/80">
+        {state === "queued"
+          ? "No te preocupes: las intentaremos guardar solas en cuanto haya conexión. También puedes probar ahora."
+          : message}
+      </p>
+      {state === "queued" && message && <p className="mt-1 text-xs text-muted">({message})</p>}
+      <Button size="sm" className="mt-2" onClick={onRetry}>
+        Reintentar ahora
+      </Button>
     </div>
   );
 }
