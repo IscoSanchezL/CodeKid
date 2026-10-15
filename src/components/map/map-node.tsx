@@ -1,12 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useCurrentLevel } from "./use-current-level";
 import { Fuzzy } from "@/components/game/fuzzy";
 import { LevelStars } from "./level-stars";
 import { WORLDS } from "./island";
 
-type Props = { level: number; title: string; icon: string; x: number; y: number; open: boolean; current: boolean };
+type Props = { level: number; title: string; icon: string; x: number; y: number; open: boolean };
 
 /** Plataforma hexagonal sobre el agua, con el icono del tema del nivel. Se coloca en % sobre el mapa (viewBox 1000×700). */
-export function MapNode({ level, title, icon, x, y, open, current }: Props) {
+export function MapNode({ level, title, icon, x, y, open }: Props) {
+  const here = useCurrentLevel();
+  const current = open && here === level;
   const w = WORLDS[(level - 1) % WORLDS.length];
   const top = open ? w.top : "#6b7385";
   const side = open ? w.side : "#454c5c";

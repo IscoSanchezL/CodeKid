@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { run } from "./interpreter";
 import { CHALLENGES } from "./levels";
-import { addBlock, countBlocks, findBlock, insertAt, locate, makeBlock, moveBlock, removeBlock, setTimes } from "./program";
+import { addBlock, countBlocks, findBlock, insertAt, locate, makeBlock, moveBlock, removeBlock, setCond, setTimes } from "./program";
 import type { Block, Level } from "./types";
 
 const base = CHALLENGES[0] as Level;
@@ -31,6 +31,38 @@ describe("niveles de referencia", () => {
     for (const c of CHALLENGES) {
       expect(c.allowed.includes("repeat")).toBe(c.level >= 2);
     }
+  });
+});
+
+describe("condicionales", () => {
+  it("«si» solo está permitido desde el nivel 3", () => {
+    for (const c of CHALLENGES) expect(c.allowed.includes("if")).toBe(c.level >= 3);
+  });
+
+  it("ejecuta el cuerpo solo si se cumple la condición", () => {
+    const c = CHALLENGES.find((x) => x.level === 3 && x.challenge === 1) as Level;
+    // de frente hay camino libre: avanza; «si hay pared» no se cumple y no gira
+    const ok = run(c, [
+      { id: "a", type: "if", cond: "free", body: [makeBlock("move")] },
+      { id: "b", type: "if", cond: "wall", body: [makeBlock("left")] },
+    ]);
+    expect(ok.snapshots).toHaveLength(2);
+    expect(ok.snapshots.at(-1)?.x).toBe(1);
+  });
+
+  it("cambia la condición de un «si»", () => {
+    const iff = makeBlock("if");
+    expect((iff as Extract<Block, { type: "if" }>).cond).toBe("wall");
+    const p = setCond([iff], iff.id, "free");
+    expect((p[0] as Extract<Block, { type: "if" }>).cond).toBe("free");
+  });
+
+  it("corta los bucles anidados vacíos (no se cuelga)", () => {
+    const empty = (times: number, body: Block[]): Block => ({ id: `e${times}${body.length}`, type: "repeat", times, body });
+    let p: Block = empty(9, []);
+    for (let i = 0; i < 6; i++) p = empty(9, [p]);
+    const r = run(base, [p]);
+    expect(r.reason).toBe("step-limit");
   });
 });
 

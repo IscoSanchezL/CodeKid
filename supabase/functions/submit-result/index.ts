@@ -28,10 +28,14 @@ function sanitize(input: unknown, allowed: BlockType[], depth = 0, counter = { n
   return input.map((raw, i) => {
     counter.n += 1;
     if (counter.n > MAX_BLOCKS) throw new Error("Programa demasiado grande");
-    const b = raw as { type?: string; times?: unknown; body?: unknown };
+    const b = raw as { type?: string; times?: unknown; cond?: unknown; body?: unknown };
     const type = b?.type as BlockType;
     if (!allowed.includes(type)) throw new Error("Bloque no permitido en este reto");
     const id = `b${depth}-${i}-${counter.n}`;
+    if (type === "if") {
+      const cond = b.cond === "free" ? "free" : "wall";
+      return { id, type, cond, body: sanitize(b.body ?? [], allowed, depth + 1, counter) };
+    }
     if (type === "repeat") {
       const times = Math.min(9, Math.max(2, Math.round(Number(b.times) || 2)));
       return { id, type, times, body: sanitize(b.body ?? [], allowed, depth + 1, counter) };

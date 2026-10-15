@@ -90,7 +90,6 @@ const DECOR: Item[] = (() => {
 
 /** Mapa ilustrado del mundo CodeKid: río, islas por nivel, paisaje y personajes. */
 export function WorldMap() {
-  const current = Math.min(...PLAYABLE_LEVELS);
   return (
     <div>
       <div className="flex items-start justify-between gap-2 pb-3">
@@ -246,7 +245,6 @@ export function WorldMap() {
                 x={NODES[i][0]}
                 y={NODES[i][1]}
                 open={PLAYABLE_LEVELS.includes(l.id)}
-                current={l.id === current}
               />
             ))}
           </ol>

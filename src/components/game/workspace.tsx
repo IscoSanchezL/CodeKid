@@ -28,9 +28,11 @@ import {
   moveBlock,
   removeBlock,
   selfAndInnerIds,
+  setCond,
   setTimes,
+  isContainer,
 } from "@/engine/program";
-import type { Block, BlockType } from "@/engine/types";
+import type { Block, BlockType, Cond } from "@/engine/types";
 import { cn } from "@/lib/utils";
 import { blockLabel } from "./program-editor";
 
@@ -49,6 +51,7 @@ type Ctx = {
   setContainer: (id: string | null) => void;
   onRemove: (id: string) => void;
   onTimes: (id: string, times: number) => void;
+  onCond: (id: string, cond: Cond) => void;
 };
 const WorkspaceCtx = createContext<Ctx | null>(null);
 const useWs = () => {
@@ -165,6 +168,7 @@ export function Workspace({
       onChange(removeBlock(program, id));
     },
     onTimes: (id, n) => onChange(setTimes(program, id, n)),
+    onCond: (id, c) => onChange(setCond(program, id, c)),
   };
 
   return (
@@ -423,6 +427,18 @@ function BlockRow({ block }: { block: Block }) {
           <span>{l.text}</span>
         </span>
 
+        {block.type === "if" && (
+          <select
+            aria-label="Condición"
+            value={block.cond}
+            disabled={!ctx.editing}
+            onChange={(e) => ctx.onCond(block.id, e.target.value as Cond)}
+            className="rounded-lg bg-black/15 px-1 py-0.5 text-sm"
+          >
+            <option value="wall">hay pared adelante</option>
+            <option value="free">hay camino libre</option>
+          </select>
+        )}
         {block.type === "repeat" && (
           <label className="flex items-center gap-1 text-sm">
             <select
@@ -452,7 +468,7 @@ function BlockRow({ block }: { block: Block }) {
         </button>
       </div>
 
-      {block.type === "repeat" && (
+      {isContainer(block) && (
         <div
           className={cn(
             "ml-4 mt-1 rounded-xl border-2 border-dashed p-2",

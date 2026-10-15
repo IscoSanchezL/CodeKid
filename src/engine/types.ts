@@ -2,11 +2,16 @@
 export type Dir = 0 | 1 | 2 | 3;
 
 export type ActionType = "move" | "left" | "right";
-export type BlockType = ActionType | "repeat";
+export type BlockType = ActionType | "repeat" | "if";
+
+/** Condiciones de «si»: hay pared justo delante o hay camino libre delante. */
+export type Cond = "wall" | "free";
 
 export type ActionBlock = { id: string; type: ActionType };
 export type RepeatBlock = { id: string; type: "repeat"; times: number; body: Block[] };
-export type Block = ActionBlock | RepeatBlock;
+export type IfBlock = { id: string; type: "if"; cond: Cond; body: Block[] };
+export type Block = ActionBlock | RepeatBlock | IfBlock;
+export type ContainerBlock = RepeatBlock | IfBlock;
 
 /**
  * Mapa en texto. '#' pared, '.' suelo, 'S' inicio, 'G' meta, '*' moneda.

@@ -55,9 +55,26 @@ export function run(level: Level, program: Block[]): RunResult {
       if (done || failure) return;
       if (block.type === "repeat") {
         for (let i = 0; i < block.times; i++) {
+          steps += 1; // también cuenta cada vuelta, para cortar bucles vacíos anidados
+          if (steps > MAX_STEPS) {
+            failure = "step-limit";
+            return;
+          }
           exec(block.body);
           if (done || failure) return;
         }
+        continue;
+      }
+      if (block.type === "if") {
+        steps += 1;
+        if (steps > MAX_STEPS) {
+          failure = "step-limit";
+          return;
+        }
+        const nx = x + DELTAS[dir].dx;
+        const ny = y + DELTAS[dir].dy;
+        const wall = nx < 0 || ny < 0 || nx >= map.width || ny >= map.height || map.walls.has(`${nx},${ny}`);
+        if (block.cond === "wall" ? wall : !wall) exec(block.body);
         continue;
       }
 

@@ -8,9 +8,14 @@ const move = (): Block => ({ id: id(), type: "move" });
 const left = (): Block => ({ id: id(), type: "left" });
 const right = (): Block => ({ id: id(), type: "right" });
 const repeat = (times: number, ...body: Block[]): Block => ({ id: id(), type: "repeat", times, body });
+const ifWall = (...body: Block[]): Block => ({ id: id(), type: "if", cond: "wall", body });
+const ifFree = (...body: Block[]): Block => ({ id: id(), type: "if", cond: "free", body });
+/** Patrón de «camina y gira al chocar»: si hay camino, avanza; si hay pared, gira. */
+const walk = (turn: () => Block): Block[] => [ifFree(move()), ifWall(turn())];
 
 const SEQ: Level["allowed"] = ["move", "left", "right"];
 const LOOP: Level["allowed"] = ["move", "left", "right", "repeat"];
+const LOGIC: Level["allowed"] = ["move", "left", "right", "repeat", "if"];
 
 export const CHALLENGES: Level[] = [
   // ── Nivel 1 · Secuencias ───────────────────────────────────────────────
@@ -75,6 +80,38 @@ export const CHALLENGES: Level[] = [
     hint: "Un solo «Repetir» con 5 bloques dentro basta.",
     rows: ["S..####", "##...##", "####...", "######G"],
     solution: [repeat(3, move(), move(), right(), move(), left())],
+  },
+
+  // ── Nivel 3 · Condicionales ────────────────────────────────────────────
+  {
+    level: 3, challenge: 1, title: "Si hay pared", par: 5, startDir: 1, allowed: LOGIC,
+    hint: "Repite: «si hay camino libre» avanza y «si hay pared» gira a la derecha.",
+    rows: ["S...", "###.", "###G"],
+    solution: [repeat(5, ...walk(right))],
+  },
+  {
+    level: 3, challenge: 2, title: "Dos esquinas", par: 5, startDir: 1, allowed: LOGIC,
+    hint: "El mismo patrón sirve para todas las esquinas. Repite 9 veces.",
+    rows: ["S....", "##G#.", "##..."],
+    solution: [repeat(9, ...walk(right))],
+  },
+  {
+    level: 3, challenge: 3, title: "Hacia la izquierda", par: 5, startDir: 1, allowed: LOGIC,
+    hint: "Ahora las esquinas giran a la izquierda: cambia el bloque de giro.",
+    rows: ["##...", "##G#*", "S.*.."],
+    solution: [repeat(9, ...walk(left))],
+  },
+  {
+    level: 3, challenge: 4, title: "La gran vuelta", par: 6, startDir: 1, allowed: LOGIC,
+    hint: "Necesitas 13 vueltas: pon un «Repetir» dentro de otro (2 × 7).",
+    rows: ["S....", "G###.", ".###.", "....."],
+    solution: [repeat(2, repeat(7, ...walk(right)))],
+  },
+  {
+    level: 3, challenge: 5, title: "Vuelta con monedas", par: 6, startDir: 1, allowed: LOGIC,
+    hint: "Gira a la izquierda y recoge las dos monedas por el camino.",
+    rows: ["..*..", ".###.", "G###*", "S...."],
+    solution: [repeat(2, repeat(7, ...walk(left)))],
   },
 ];
 

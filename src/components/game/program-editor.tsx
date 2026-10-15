@@ -6,6 +6,7 @@ const LABELS = {
   left: { icon: "↰", text: "Girar izquierda", color: "bg-[#ff9b4a] text-[rgb(8_16_48)]" },
   right: { icon: "↱", text: "Girar derecha", color: "bg-success text-white" },
   repeat: { icon: "🔁", text: "Repetir", color: "bg-success text-white" },
+  if: { icon: "❓", text: "Si", color: "bg-[#8b5cf6] text-white" },
 } as const;
 
 export function blockLabel(type: BlockType) {

@@ -39,4 +39,13 @@ describe("de bloques a código", () => {
     expect(toCode([rep(2)], "python")).toBe("for _ in range(2):\n    pass");
     expect(toCode([rep(2)], "js")).toBe("for (let i = 0; i < 2; i++) {\n  // (vacío)\n}");
   });
+
+  it("un «si» se vuelve un if con su condición", () => {
+    const iff: Block = { id: "i", type: "if", cond: "free", body: [mv] };
+    const iw: Block = { id: "j", type: "if", cond: "wall", body: [rt] };
+    expect(toCode([rep(2, iff, iw)], "js")).toBe(
+      "for (let i = 0; i < 2; i++) {\n  if (hayCaminoLibre()) {\n    avanzar();\n  }\n  if (hayPared()) {\n    girarDerecha();\n  }\n}",
+    );
+    expect(toCode([iw], "python")).toBe("if hay_pared():\n    girar_derecha()");
+  });
 });
