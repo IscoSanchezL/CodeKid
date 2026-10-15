@@ -17,7 +17,7 @@ function useFit(natW: number) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const update = () => setScale(Math.min(1.5, el.clientWidth / natW));
+    const update = () => setScale(Math.min(1.9, el.clientWidth / natW));
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -131,7 +131,7 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
   return (
     <div
       ref={ref}
-      className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border-4 border-white shadow-card"
+      className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border-4 border-white shadow-card"
       style={{ height: H * scale }}
     >
       <div

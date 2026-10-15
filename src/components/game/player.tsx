@@ -8,6 +8,7 @@ import { parseLevel, run } from "@/engine/interpreter";
 import type { Block, FailReason, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
 import { queuePending, removePending } from "@/lib/pending-results";
+import { sfx } from "@/lib/audio";
 import { logFailedAttempt, submitResult, SubmitError, type Reward } from "@/lib/wallet";
 import { Burst, PopStars } from "@/components/fx/fx";
 import { useWallet } from "@/components/shop/use-wallet";
@@ -55,6 +56,24 @@ export function Player({ level, total }: Props) {
     const t = window.setTimeout(() => setIndex((i) => i + 1), 380);
     return () => window.clearTimeout(t);
   }, [playing, index, result]);
+
+  // Sonido de cada paso, giro o choque mientras corre el programa
+  useEffect(() => {
+    if (!result || !playing || index === 0) return;
+    const cur = result.snapshots[index];
+    const before = result.snapshots[index - 1];
+    if (!cur || !before) return;
+    if (cur.bump) sfx("bump");
+    else if (cur.x !== before.x || cur.y !== before.y) sfx("step");
+    else if (cur.dir !== before.dir) sfx("turn");
+    if (cur.coins > before.coins) window.setTimeout(() => sfx("star"), 120);
+  }, [index, result, playing]);
+
+  // Fanfarria al terminar
+  useEffect(() => {
+    if (!finished || !result) return;
+    sfx(result.status === "win" ? "win" : "fail");
+  }, [finished, result]);
 
   /** Guarda el resultado en el servidor. Si falla de forma temporal, lo deja en cola para reintentar solo. */
   const persist = useCallback(async () => {
@@ -130,7 +149,7 @@ export function Player({ level, total }: Props) {
   const next = level.challenge < total ? level.challenge + 1 : null;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_minmax(300px,380px)]">
+    <div className="flex flex-col gap-4">
       <section aria-label="Escenario" className="flex flex-col gap-4">
         <Board
           level={level}
@@ -212,8 +231,10 @@ export function Player({ level, total }: Props) {
         )}
       </section>
 
-      <aside className="flex flex-col gap-4" aria-label="Programa">
-        <Workspace allowed={level.allowed} program={program} onChange={edit} editing={editing} runningId={runningId} />
+      <aside aria-label="Programa" className="flex flex-col gap-4">
+        <div className="grid items-start gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(0,1.7fr)]">
+          <Workspace allowed={level.allowed} program={program} onChange={edit} editing={editing} runningId={runningId} />
+        </div>
 
         <Link href={`/nivel/${level.level}`} className="text-center text-sm font-medium text-muted hover:text-fg">
           ← Todos los retos del nivel {level.level}

@@ -38,7 +38,7 @@ export default function RetoPage({ params }: { params: Params }) {
           </div>
         </div>
       </header>
-      <main className="rise mx-auto max-w-6xl px-4 pb-16 pt-6">
+      <main className="rise mx-auto max-w-5xl px-4 pb-16 pt-6">
         <h1 className="mb-1 text-2xl font-extrabold">
           Reto {level.challenge}: {level.title}
         </h1>
