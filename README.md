@@ -40,7 +40,7 @@ npm run dev                  # http://localhost:3000
 npm run lint && npm run typecheck && npm test
 ```
 
-El esquema de base de datos está en `supabase/migrations/` (aplícalo en tu proyecto de Supabase).
+El esquema está en `supabase/migrations/` y ya está aplicado al proyecto Supabase **CodeKid** (`fomdxwpxydxtqkbjtozl`).
 
 ## Hitos
 
