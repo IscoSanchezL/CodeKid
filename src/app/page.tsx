@@ -16,14 +16,6 @@ export default function Home() {
     <>
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
         <Logo />
-        <nav className="flex items-center gap-2">
-          <ButtonLink href="/login" variant="ghost" size="sm">
-            Docentes
-          </ButtonLink>
-          <ButtonLink href="/clase" size="sm">
-            Entrar con mi clase
-          </ButtonLink>
-        </nav>
       </header>
 
       <main>
@@ -42,8 +34,8 @@ export default function Home() {
             <ButtonLink href="/clase" size="lg">
               Entrar con mi clase
             </ButtonLink>
-            <ButtonLink href="/registro" variant="outline" size="lg">
-              Soy docente: crear cuenta
+            <ButtonLink href="/login" variant="outline" size="lg">
+              Soy docente
             </ButtonLink>
           </div>
           <HeroScene />
