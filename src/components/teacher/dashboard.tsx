@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
 import { callClassAccess, type CreatedStudent, type Student } from "@/lib/class-api";
 import { createClient } from "@/lib/supabase/client";
 
@@ -254,8 +255,8 @@ export function TeacherDashboard() {
                   <ul className="mt-2 grid gap-1 sm:grid-cols-2">
                     {lastCreated.map((s) => (
                       <li key={s.id} className="flex justify-between rounded-lg bg-surface-2 px-3 py-1">
-                        <span>
-                          {s.avatar} {s.name}
+                        <span className="flex items-center gap-2">
+                          <FuzzyAvatar id={s.id} size={28} /> {s.name}
                         </span>
                         <span className="font-mono font-bold">{s.pin}</span>
                       </li>
@@ -276,9 +277,7 @@ export function TeacherDashboard() {
                 <ul className="divide-y divide-border">
                   {students.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-3 py-2">
-                      <span className="text-2xl" aria-hidden>
-                        {s.avatar}
-                      </span>
+                      <FuzzyAvatar id={s.id} size={40} />
                       <span className="flex-1 font-semibold">{s.name}</span>
                       <span className="text-xs text-muted">{s.hasPin ? "🔒 con PIN" : "sin PIN"}</span>
                       <Button variant="outline" size="sm" onClick={() => resetPin(s, "random")}>

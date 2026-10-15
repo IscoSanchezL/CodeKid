@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseLevel } from "@/engine/interpreter";
 import type { Level, Snapshot } from "@/engine/types";
+import { SceneDecor } from "@/components/brand/scene-decor";
 import { Fuzzy, type FuzzyVariant } from "./fuzzy";
 
 // Escenario 3D con CSS: el tablero es un plano inclinado y los objetos son "carteles"
@@ -141,13 +142,10 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
   return (
     <div
       ref={ref}
-      className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-border shadow-card"
-      style={{ height: natH * scale, background: "linear-gradient(180deg,#5cc8ff 0%,#a8e4ff 55%,#d7f3ff 100%)" }}
+      className="scene-sky relative mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-border shadow-card"
+      style={{ height: natH * scale }}
     >
-      {/* decorado del cielo */}
-      <div aria-hidden className="bd-cloud" style={{ top: "8%", left: "6%", width: 90 * scale, height: 28 * scale }} />
-      <div aria-hidden className="bd-cloud bd-cloud-slow" style={{ top: "20%", right: "8%", width: 120 * scale, height: 36 * scale }} />
-      <div aria-hidden className="absolute -right-6 -top-6 h-24 w-24 rounded-full" style={{ background: "radial-gradient(circle,#fff6b0 0%,#ffe066 45%,rgba(255,224,102,0) 70%)" }} />
+      <SceneDecor scale={scale} />
 
       <div
         style={{

@@ -18,6 +18,19 @@
   --warn: 255 197 36;
   --danger: 220 55 70;
   --radius-lg: 14px;
+
+  /* Escena: cielo, nubes, sol/luna y prado (de día) */
+  --sky-1: #5cc8ff;
+  --sky-2: #a8e4ff;
+  --sky-3: #d7f3ff;
+  --cloud: rgba(255, 255, 255, 0.85);
+  --sun-a: #fff6b0;
+  --sun-b: #ffe066;
+  --stars-o: 0;
+  --grass-1: #7fdc63;
+  --grass-2: #4fb84a;
+  --grass-edge: #a6ee8a;
+  --grass-dark: #2f8f3c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -30,6 +43,17 @@
     --border: 30 45 105;
     --brand: 34 211 238;
     --brand-fg: 5 11 42;
+    --sky-1: #0a1550;
+    --sky-2: #16257a;
+    --sky-3: #2b3f9e;
+    --cloud: rgba(150, 170, 255, 0.22);
+    --sun-a: #f4f8ff;
+    --sun-b: #b9c8ff;
+    --stars-o: 1;
+    --grass-1: #2f7d5a;
+    --grass-2: #1f5e45;
+    --grass-edge: #4fae86;
+    --grass-dark: #134232;
   }
 }
 
@@ -42,6 +66,17 @@
   --border: 30 45 105;
   --brand: 34 211 238;
   --brand-fg: 5 11 42;
+  --sky-1: #0a1550;
+  --sky-2: #16257a;
+  --sky-3: #2b3f9e;
+  --cloud: rgba(150, 170, 255, 0.22);
+  --sun-a: #f4f8ff;
+  --sun-b: #b9c8ff;
+  --stars-o: 1;
+  --grass-1: #2f7d5a;
+  --grass-2: #1f5e45;
+  --grass-edge: #4fae86;
+  --grass-dark: #134232;
 }
 
 /* Accesibilidad: alto contraste y fuente para dislexia (se activan por data-attrs) */
@@ -123,7 +158,7 @@ body {
 .bd-cloud {
   position: absolute;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--cloud);
   filter: blur(0.5px);
   animation: bd-drift 14s ease-in-out infinite alternate;
 }
@@ -140,4 +175,42 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .fz-idle, .fz-cheer, .bd-coin, .bd-wave, .bd-ring, .bd-cloud { animation: none !important; }
+}
+
+/* ── Escena compartida (cielo, sol/luna, estrellas, prado) ───────────────── */
+.scene-sky {
+  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 55%, var(--sky-3) 100%);
+}
+.scene-sun {
+  background: radial-gradient(circle, var(--sun-a) 0%, var(--sun-b) 45%, transparent 70%);
+}
+.scene-stars {
+  opacity: var(--stars-o);
+  background-image:
+    radial-gradient(2.5px 2.5px at 12% 18%, #fff 50%, transparent 51%),
+    radial-gradient(1.7px 1.7px at 28% 8%, #fff 50%, transparent 51%),
+    radial-gradient(3.4px 3.4px at 41% 24%, #fff 50%, transparent 51%),
+    radial-gradient(1.7px 1.7px at 57% 12%, #fff 50%, transparent 51%),
+    radial-gradient(2.5px 2.5px at 66% 30%, #fff 50%, transparent 51%),
+    radial-gradient(1.7px 1.7px at 78% 10%, #fff 50%, transparent 51%),
+    radial-gradient(3.4px 3.4px at 88% 26%, #fff 50%, transparent 51%),
+    radial-gradient(1.7px 1.7px at 20% 38%, #fff 50%, transparent 51%),
+    radial-gradient(2.5px 2.5px at 94% 6%, #fff 50%, transparent 51%),
+    radial-gradient(1.7px 1.7px at 50% 40%, #fff 50%, transparent 51%);
+  animation: scene-twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes scene-twinkle { from { filter: brightness(0.7); } to { filter: brightness(1.3); } }
+.scene-meadow {
+  background: linear-gradient(180deg, var(--grass-1) 0%, var(--grass-2) 100%);
+  border-top: 3px solid var(--grass-edge);
+}
+.scene-meadow-edge { background: var(--grass-dark); }
+
+/* Tarjetas con relieve */
+.card-3d {
+  box-shadow: 0 4px 0 0 rgb(var(--border)), 0 18px 32px -18px rgb(0 0 0 / 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-stars { animation: none !important; }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
 import { ApiError, callClassAccess, type Student } from "@/lib/class-api";
 import { createClient } from "@/lib/supabase/client";
 
@@ -137,9 +138,7 @@ export function ClassLogin() {
                   onClick={() => choose(s)}
                   className="flex w-full flex-col items-center gap-1 rounded-2xl border border-border bg-surface-2 p-3 transition-transform hover:-translate-y-0.5 hover:border-brand disabled:opacity-50"
                 >
-                  <span className="text-4xl" aria-hidden>
-                    {s.avatar}
-                  </span>
+                  <FuzzyAvatar id={s.id} size={56} />
                   <span className="break-words text-center text-sm font-bold">{s.name}</span>
                   {s.hasPin && (
                     <span className="text-xs text-muted">
@@ -172,9 +171,9 @@ export function ClassLogin() {
 
   return (
     <Card className="text-center">
-      <p className="text-6xl" aria-hidden>
-        {step.student.avatar}
-      </p>
+      <div className="fz-idle mx-auto w-fit">
+        <FuzzyAvatar id={step.student.id} size={110} />
+      </div>
       <h1 className="mt-2 text-2xl font-extrabold">Hola, {step.student.name}</h1>
       <p className="mt-1 text-muted">Escribe tu PIN de 4 números.</p>
       <div className="my-5 flex justify-center gap-3" role="status" aria-label={`${pin.length} de 4 números escritos`}>

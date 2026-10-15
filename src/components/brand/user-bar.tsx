@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
 import { createClient } from "@/lib/supabase/client";
 
-type Me = { name: string; avatar: string; role: string };
+type Me = { id: string; name: string; role: string };
 
 /** Muestra quién juega y permite cambiar de alumno (equipos compartidos del aula). */
 export function UserBar() {
@@ -20,12 +21,12 @@ export function UserBar() {
         if (!auth.user) return setMe(null);
         const { data } = await supabase
           .from("profiles")
-          .select("display_name, avatar, role")
+          .select("display_name, role")
           .eq("id", auth.user.id)
           .maybeSingle();
         setMe(
           data
-            ? { name: data.display_name, avatar: (data.avatar as { emoji?: string } | null)?.emoji ?? "🙂", role: data.role }
+            ? { id: auth.user.id, name: data.display_name, role: data.role }
             : null,
         );
       } catch {
@@ -43,7 +44,7 @@ export function UserBar() {
   if (me === undefined) return null;
   if (me === null) {
     return (
-      <Link href="/clase" className="text-sm font-semibold text-brand">
+      <Link href="/clase" className="rounded-xl bg-surface px-3 py-1.5 text-sm font-bold text-brand shadow-[0_3px_0_0_rgb(var(--border))]">
         Entrar con mi clase
       </Link>
     );
@@ -52,9 +53,7 @@ export function UserBar() {
   return (
     <div className="flex items-center gap-3 text-sm">
       <span className="flex items-center gap-2 font-semibold">
-        <span className="text-2xl" aria-hidden>
-          {me.avatar}
-        </span>
+        <FuzzyAvatar id={me.id} size={36} />
         {me.name}
       </span>
       {staff && (

@@ -49,10 +49,11 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
   const c = PALETTE[variant];
   const look = LOOK[dir];
 
+  const lite = size <= 64;
   const fur = useMemo(() => {
     const rand = rng(variant.length * 97 + 13);
     const strokes: { d: string; tone: "light" | "dark"; w: number; o: number }[] = [];
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < (lite ? 36 : 120); i++) {
       const ang = rand() * Math.PI * 2;
       const rad = 8 + rand() * 33;
       const len = 5 + rand() * 9;
@@ -71,7 +72,7 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
       });
     }
     return strokes;
-  }, [variant]);
+  }, [variant, lite]);
 
   const eyeY = 47;
   const fx = look.dx * 0.8;
@@ -104,7 +105,7 @@ export function Fuzzy({ variant = "cyan", dir = 2, mood = "idle", size = 80, cla
         </clipPath>
       </defs>
 
-      <g filter={`url(#fur-${uid})`}>
+      <g filter={lite ? undefined : `url(#fur-${uid})`}>
         <circle cx="50" cy="52" r="40" fill={`url(#body-${uid})`} />
         {variant === "rainbow" && (
           <circle cx="50" cy="52" r="40" fill={`url(#rb-${uid})`} opacity="0.85" />
