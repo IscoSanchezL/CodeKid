@@ -89,7 +89,7 @@ export function Player({ level, total }: Props) {
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           {editing ? (
-            <Button size="lg" onClick={execute}>
+            <Button size="lg" variant="go" onClick={execute}>
               ▶ Ejecutar
             </Button>
           ) : (
@@ -173,7 +173,7 @@ export function Player({ level, total }: Props) {
           </div>
         </Card>
 
-        <Card className="min-h-48 p-4">
+        <Card className="plank min-h-48 p-4">
           <h2 className="mb-3 flex items-center justify-between font-bold">
             Mi programa
             {program.length > 0 && editing && (

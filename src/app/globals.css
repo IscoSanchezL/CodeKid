@@ -31,6 +31,10 @@
   --grass-2: #4fb84a;
   --grass-edge: #a6ee8a;
   --grass-dark: #2f8f3c;
+
+  --map-grass-1: #62d257;
+  --map-grass-2: #3fb049;
+  --map-tint: rgba(5, 11, 42, 0);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -54,6 +58,9 @@
     --grass-2: #1f5e45;
     --grass-edge: #4fae86;
     --grass-dark: #134232;
+    --map-grass-1: #1d5c45;
+    --map-grass-2: #134733;
+    --map-tint: rgba(5, 11, 50, 0.38);
   }
 }
 
@@ -77,6 +84,9 @@
   --grass-2: #1f5e45;
   --grass-edge: #4fae86;
   --grass-dark: #134232;
+  --map-grass-1: #1d5c45;
+  --map-grass-2: #134733;
+  --map-tint: rgba(5, 11, 50, 0.38);
 }
 
 /* Accesibilidad: alto contraste y fuente para dislexia (se activan por data-attrs) */
@@ -214,3 +224,30 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .scene-stars { animation: none !important; }
 }
+
+/* ── Mapa del mundo ─────────────────────────────────────────────────────── */
+@keyframes map-flow { to { stroke-dashoffset: -60; } }
+.map-flow { animation: map-flow 3s linear infinite; }
+@keyframes map-ripple { 0%, 100% { transform: scale(0.96); opacity: 0.5; } 50% { transform: scale(1.04); opacity: 0.15; } }
+.map-ripple { transform-box: fill-box; transform-origin: center; animation: map-ripple 3.2s ease-in-out infinite; }
+@keyframes map-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.map-pulse { animation: map-pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .map-flow, .map-ripple, .map-pulse { animation: none !important; }
+}
+
+@keyframes bd-star { 0%, 100% { transform: scale(1) rotate(-4deg); } 50% { transform: scale(1.14) rotate(4deg); } }
+.bd-star { animation: bd-star 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) { .bd-star { animation: none !important; } }
+
+/* Tablón de madera para el programa del alumno */
+.plank {
+  color: #0b1440;
+  border-color: #b8860b;
+  background:
+    repeating-linear-gradient(90deg, rgba(120, 80, 0, 0.07) 0 2px, transparent 2px 46px),
+    linear-gradient(180deg, #ffe07a 0%, #f6b90a 100%);
+  box-shadow: 0 5px 0 0 #b8860b, 0 18px 32px -18px rgb(0 0 0 / 0.35);
+}
+.plank .text-muted { color: rgba(11, 20, 64, 0.72); }
+.plank .border-border { border-color: rgba(11, 20, 64, 0.35); }
