@@ -129,7 +129,6 @@ export function ClassLogin() {
             autoCapitalize="characters"
             spellCheck={false}
             autoFocus
-            placeholder="KID1A"
             className="h-16 rounded-xl border-2 border-border bg-surface text-center font-mono text-3xl font-bold uppercase tracking-[0.25em] text-fg placeholder:text-muted/50"
           />
           {error && (
@@ -216,7 +215,6 @@ export function ClassLogin() {
             autoCapitalize="characters"
             spellCheck={false}
             autoFocus
-            placeholder="1A"
             className="h-14 rounded-xl border-2 border-border bg-surface text-center font-mono text-2xl font-bold uppercase tracking-[0.2em] text-fg placeholder:text-muted/50"
           />
           {error && (

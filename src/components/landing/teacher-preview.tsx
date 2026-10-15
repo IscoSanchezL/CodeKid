@@ -18,11 +18,11 @@ export function TeacherPreview() {
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-black/30 p-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Código</p>
-          <p className="font-mono text-2xl font-extrabold tracking-[0.15em] text-[#5ee3ff]">KID1A</p>
+          <p className="font-mono text-2xl font-extrabold tracking-[0.15em] text-[#5ee3ff]">• • • • •</p>
         </div>
         <div className="rounded-xl bg-black/30 p-3">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Clave</p>
-          <p className="font-mono text-2xl font-extrabold tracking-[0.15em] text-[#ffb454]">1A</p>
+          <p className="font-mono text-2xl font-extrabold tracking-[0.15em] text-[#ffb454]">• •</p>
         </div>
       </div>
       <ul className="mt-3 divide-y divide-white/10">

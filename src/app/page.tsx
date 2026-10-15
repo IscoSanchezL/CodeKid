@@ -149,7 +149,7 @@ export default function Home() {
               <h2 className="mt-3 text-3xl font-extrabold leading-tight sm:text-5xl">Tu clase, lista en un minuto</h2>
               <ul className="mt-6 space-y-3 text-lg text-white/75">
                 {[
-                  "Crea la clase con el código y la clave que prefieras, p. ej. KID1A y 1A.",
+                  "Crea la clase con el código y la clave que prefieras.",
                   "Tus alumnos entran tocando su nombre: sin correos ni datos personales.",
                   "Mira estrellas, monedas y avance de cada uno desde tu panel.",
                 ].map((t) => (
