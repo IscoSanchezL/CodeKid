@@ -1024,3 +1024,11 @@ body::before {
 @keyframes rainbow-flow { to { stroke-dashoffset: -80; } }
 .rainbow-flow { animation: rainbow-flow 5s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .sky-bob, .sky-drift, .rainbow-flow { animation: none !important; } }
+
+@keyframes rainbow-flow-b { to { stroke-dashoffset: -208; } }
+.rainbow-flow-b { animation: rainbow-flow-b 7s linear infinite; }
+@keyframes holo-dash { to { stroke-dashoffset: -28; } }
+.holo-dash { animation: holo-dash 3s linear infinite; }
+@keyframes glint { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.9; } }
+.glint { animation: glint 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rainbow-flow-b, .holo-dash, .glint { animation: none !important; } }

@@ -4,7 +4,6 @@ import { UserBar } from "@/components/brand/user-bar";
 import { Fuzzy, type FuzzyVariant } from "@/components/game/fuzzy";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
-import { Balloon, Cloud } from "@/components/scenery/sky";
 import { MapNode } from "./map-node";
 import { rng, smoothPath, type Pt } from "./path";
 import { StarsTotal } from "./stars-total";
@@ -33,39 +32,39 @@ const FRIENDS: { variant: FuzzyVariant; x: number; y: number; size: number }[] =
 const { d: TRAIL, samples: TRAIL_PTS } = smoothPath(NODES);
 
 type Deco = {
-  kind: "balloon" | "cloud";
+  kind: "shard" | "glow";
   x: number;
   y: number;
   s: number;
   v: number;
 };
 
-/** Pocos adornos y suaves (semilla fija): nubes lejanas y algún globo pequeño, siempre lejos del camino. */
+/** Cristales flotantes y destellos (semilla fija), siempre lejos del camino y de las plataformas. */
 const DECOR: Deco[] = (() => {
-  const r = rng(31);
+  const r = rng(47);
   const items: Deco[] = [];
   const dist = (a: Pt, bx: number, by: number) =>
     Math.hypot(a[0] - bx, a[1] - by);
-  for (let tries = 0; tries < 3000 && items.length < 13; tries++) {
+  for (let tries = 0; tries < 4000 && items.length < 16; tries++) {
     const x = 40 + r() * 920;
-    const y = 90 + r() * 560;
-    const kind: Deco["kind"] = items.length % 2 === 0 ? "cloud" : "balloon";
-    const gap = kind === "cloud" ? 90 : 60;
+    const y = 80 + r() * 580;
+    const kind: Deco["kind"] = items.length % 3 === 2 ? "glow" : "shard";
+    const gap = kind === "glow" ? 100 : 62;
     if (TRAIL_PTS.some((p) => dist(p, x, y) < gap)) continue;
-    if (NODES.some((n) => dist(n, x, y) < gap + 70)) continue;
+    if (NODES.some((n) => dist(n, x, y) < gap + 66)) continue;
     if (
       NODES.some(
         (n) => Math.abs(x - n[0]) < 100 && y > n[1] + 30 && y < n[1] + 112,
       )
     )
       continue;
-    if (items.some((it) => Math.hypot(it.x - x, it.y - y) < 120)) continue;
+    if (items.some((it) => Math.hypot(it.x - x, it.y - y) < 110)) continue;
     items.push({
       kind,
       x,
       y,
-      s: kind === "cloud" ? 1.3 + r() * 1 : 0.38 + r() * 0.22,
-      v: Math.floor(r() * 6),
+      s: kind === "glow" ? 1.2 + r() * 1.2 : 0.6 + r() * 0.8,
+      v: Math.floor(r() * 3),
     });
   }
   return items.sort((a, b) => a.y - b.y);
@@ -114,111 +113,179 @@ export function WorldMap() {
           >
             <defs>
               <linearGradient id="sky-bg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7c82e6" />
-                <stop offset="50%" stopColor="#a3a9f2" />
-                <stop offset="100%" stopColor="#cfd3fb" />
+                <stop offset="0%" stopColor="#3d3bb8" />
+                <stop offset="48%" stopColor="#7a68f0" />
+                <stop offset="100%" stopColor="#b9a9ff" />
               </linearGradient>
+              <radialGradient id="aur-a" cx="0.12" cy="0.95" r="0.6">
+                <stop offset="0%" stopColor="#4ff3e6" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#4ff3e6" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id="aur-b" cx="0.92" cy="0.08" r="0.55">
+                <stop offset="0%" stopColor="#ff7ad9" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#ff7ad9" stopOpacity="0" />
+              </radialGradient>
               <linearGradient id="sky-ray" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#fff" stopOpacity="0.3" />
+                <stop offset="0%" stopColor="#fff" stopOpacity="0.25" />
                 <stop offset="100%" stopColor="#fff" stopOpacity="0" />
               </linearGradient>
+              <linearGradient
+                id="glass-path"
+                gradientUnits="userSpaceOnUse"
+                x1="0"
+                y1="0"
+                x2="1000"
+                y2="0"
+              >
+                <stop offset="0%" stopColor="#5ff5ea" />
+                <stop offset="50%" stopColor="#a58bff" />
+                <stop offset="100%" stopColor="#ff8fe0" />
+              </linearGradient>
+              <linearGradient id="shard" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#7fe9ff" stopOpacity="0.18" />
+              </linearGradient>
+              <pattern
+                id="tech-grid"
+                width="46"
+                height="46"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M46 0H0V46"
+                  fill="none"
+                  stroke="#fff"
+                  strokeOpacity="0.16"
+                  strokeWidth="1"
+                />
+              </pattern>
+              <linearGradient id="grid-fade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fff" stopOpacity="0" />
+                <stop offset="100%" stopColor="#fff" stopOpacity="1" />
+              </linearGradient>
+              <mask id="grid-mask">
+                <rect width="1000" height="700" fill="url(#grid-fade)" />
+              </mask>
               <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" />
+                <feGaussianBlur stdDeviation="5" />
               </filter>
             </defs>
             <rect width="1000" height="700" fill="url(#sky-bg)" />
-            {/* rayos de luz, anchos y suaves */}
-            <polygon points="90,0 250,0 470,700 150,700" fill="url(#sky-ray)" />
-            <polygon
-              points="430,0 540,0 800,700 560,700"
-              fill="url(#sky-ray)"
-              opacity="0.8"
+            <rect width="1000" height="700" fill="url(#aur-a)" />
+            <rect width="1000" height="700" fill="url(#aur-b)" />
+            <rect
+              width="1000"
+              height="700"
+              fill="url(#tech-grid)"
+              mask="url(#grid-mask)"
             />
+            <polygon points="90,0 230,0 470,700 150,700" fill="url(#sky-ray)" />
             <polygon
-              points="760,0 900,0 1000,420 1000,700"
+              points="470,0 560,0 820,700 580,700"
               fill="url(#sky-ray)"
               opacity="0.7"
             />
-            {/* neblina de nubes abajo */}
-            <ellipse
-              cx="500"
-              cy="730"
-              rx="700"
-              ry="120"
-              fill="#f1f2ff"
-              opacity="0.75"
-            />
-            <ellipse
-              cx="120"
-              cy="700"
-              rx="260"
-              ry="60"
-              fill="#fff"
-              opacity="0.55"
-            />
-            <ellipse
-              cx="880"
-              cy="710"
-              rx="280"
-              ry="60"
-              fill="#fff"
-              opacity="0.55"
+            <polygon
+              points="780,0 900,0 1000,430 1000,700"
+              fill="url(#sky-ray)"
+              opacity="0.6"
             />
 
-            {/* camino: cinta pastel translucida */}
             <g strokeLinecap="round" strokeLinejoin="round" fill="none">
               <path
                 d={TRAIL}
-                stroke="#5b61c4"
-                strokeWidth="54"
-                opacity="0.25"
-                transform="translate(0 7)"
+                stroke="url(#glass-path)"
+                strokeWidth="64"
+                opacity="0.35"
                 filter="url(#soft)"
               />
-              <path d={TRAIL} stroke="#fff" strokeWidth="52" opacity="0.5" />
+              <path d={TRAIL} stroke="#fff" strokeWidth="50" opacity="0.2" />
               <path
                 d={TRAIL}
-                stroke="#ffb7cc"
-                strokeWidth="44"
-                opacity="0.92"
+                stroke="url(#glass-path)"
+                strokeWidth="22"
+                opacity="0.9"
               />
-              <path
-                d={TRAIL}
-                stroke="#ffe48e"
-                strokeWidth="32"
-                opacity="0.95"
-              />
-              <path
-                d={TRAIL}
-                stroke="#b4efc6"
-                strokeWidth="20"
-                opacity="0.95"
-              />
-              <path d={TRAIL} stroke="#bfe3ff" strokeWidth="8" opacity="0.95" />
+              <path d={TRAIL} stroke="#fff" strokeWidth="9" opacity="0.7" />
               <path
                 className="rainbow-flow"
                 d={TRAIL}
                 stroke="#fff"
+                strokeWidth="5"
+                strokeDasharray="2 34"
+                opacity="0.95"
+              />
+              <path
+                className="rainbow-flow-b"
+                d={TRAIL}
+                stroke="#7df9ff"
                 strokeWidth="3"
-                strokeDasharray="2 46"
-                opacity="0.8"
+                strokeDasharray="14 90"
+                opacity="0.9"
+              />
+              <path
+                d={TRAIL}
+                stroke="#fff"
+                strokeWidth="2"
+                opacity="0.5"
+                transform="translate(0 -17)"
+              />
+              <path
+                d={TRAIL}
+                stroke="#fff"
+                strokeWidth="2"
+                opacity="0.35"
+                transform="translate(0 17)"
               />
             </g>
 
-            {DECOR.map((d, i) => (
-              <g
-                key={i}
-                className={d.kind === "cloud" ? "sky-drift" : "sky-bob"}
-                style={{ animationDelay: `${(i % 6) * -1.3}s` }}
-                opacity={d.kind === "cloud" ? 0.5 : 0.75}
-              >
-                {d.kind === "cloud" ? (
-                  <Cloud x={d.x} y={d.y} s={d.s} o={0.95} />
-                ) : (
-                  <Balloon x={d.x} y={d.y} s={d.s} v={d.v} />
-                )}
-              </g>
-            ))}
+            {DECOR.map((d, i) =>
+              d.kind === "shard" ? (
+                <g
+                  key={i}
+                  transform={`translate(${d.x} ${d.y}) rotate(${(d.v - 1) * 14}) scale(${d.s})`}
+                >
+                  <g
+                    className="sky-bob"
+                    style={{ animationDelay: `${(i % 6) * -1.1}s` }}
+                  >
+                    <polygon
+                      points="0,-40 17,0 0,40 -17,0"
+                      fill="url(#shard)"
+                      stroke="#fff"
+                      strokeOpacity="0.7"
+                      strokeWidth="1.5"
+                    />
+                    <polygon
+                      points="0,-40 17,0 0,6"
+                      fill="#fff"
+                      opacity="0.35"
+                    />
+                    <line
+                      x1="0"
+                      y1="-40"
+                      x2="0"
+                      y2="40"
+                      stroke="#fff"
+                      strokeOpacity="0.4"
+                    />
+                  </g>
+                </g>
+              ) : (
+                <circle
+                  key={i}
+                  className="sky-drift"
+                  cx={d.x}
+                  cy={d.y}
+                  r={30 * d.s}
+                  fill={
+                    d.v === 0 ? "#6ff3ee" : d.v === 1 ? "#ff9be6" : "#b8a4ff"
+                  }
+                  opacity="0.2"
+                  filter="url(#soft)"
+                />
+              ),
+            )}
           </svg>
 
           {/* personajes que pasean por el mapa */}

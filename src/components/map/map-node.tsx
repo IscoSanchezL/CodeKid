@@ -6,38 +6,21 @@ import { Fuzzy } from "@/components/game/fuzzy";
 import { LevelStars } from "./level-stars";
 import { WORLDS } from "./island";
 
-/** Cofre del nivel: cerrado con candado mientras falta algo, abierto y brillando al completarlo. */
-function Chest({ x, y, open }: { x: number; y: number; open: boolean }) {
+/** Cristal de recompensa: apagado mientras falta algo y brillante al completar el nivel. */
+function Crystal({ x, y, lit }: { x: number; y: number; lit: boolean }) {
   return (
-    <g transform={`translate(${x} ${y}) scale(0.9)`}>
-      {open && <circle cx="0" cy="-8" r="16" fill="#ffe66d" opacity="0.5" />}
-      <rect x="-14" y="-2" width="28" height="16" rx="3" fill="#a8522a" />
-      <rect x="-14" y="-2" width="28" height="5" fill="#7c3a1b" />
-      <rect x="-14" y="6" width="28" height="3" fill="#ffd54a" />
-      {open ? (
-        <>
-          <path
-            d="M-14 -2 L-12 -14 H12 L14 -2 Z"
-            fill="#c4683a"
-            transform="rotate(-18 -14 -2)"
-          />
-          <circle cx="0" cy="-6" r="3.5" fill="#fff3a0" />
-        </>
-      ) : (
-        <>
-          <path d="M-14 -2 Q0 -18 14 -2 Z" fill="#c4683a" />
-          <rect
-            x="-3"
-            y="1"
-            width="6"
-            height="7"
-            rx="1.5"
-            fill="#ffd54a"
-            stroke="#b8860b"
-            strokeWidth="1"
-          />
-        </>
-      )}
+    <g transform={`translate(${x} ${y})`}>
+      {lit && <circle r="18" fill="#7df9ff" opacity="0.45" className="glint" />}
+      <polygon
+        points="0,-15 9,0 0,15 -9,0"
+        fill={lit ? "#9ff8ff" : "#c9d3f5"}
+        fillOpacity={lit ? 0.95 : 0.55}
+        stroke="#fff"
+        strokeOpacity="0.9"
+        strokeWidth="1.5"
+      />
+      <polygon points="0,-15 9,0 0,3" fill="#fff" opacity={lit ? 0.7 : 0.35} />
+      <line x1="0" y1="-15" x2="0" y2="15" stroke="#fff" strokeOpacity="0.5" />
     </g>
   );
 }
@@ -75,76 +58,122 @@ export function MapNode({ level, title, icon, x, y, open }: Props) {
           aria-hidden
         >
           <defs>
-            <linearGradient id={`cl-${level}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#d9e4ff" />
+            <linearGradient id={`gl-${level}`} x1="0" y1="0" x2="1" y2="1">
+              <stop
+                offset="0%"
+                stopColor="#ffffff"
+                stopOpacity={open ? 0.7 : 0.35}
+              />
+              <stop
+                offset="100%"
+                stopColor={open ? "#8fd8ff" : "#b8c0e0"}
+                stopOpacity={open ? 0.3 : 0.22}
+              />
+            </linearGradient>
+            <linearGradient id={`gs-${level}`} x1="0" y1="0" x2="0" y2="1">
+              <stop
+                offset="0%"
+                stopColor={open ? "#7fb6ff" : "#98a0c8"}
+                stopOpacity="0.55"
+              />
+              <stop
+                offset="100%"
+                stopColor={open ? "#5a46e0" : "#59608a"}
+                stopOpacity="0.5"
+              />
             </linearGradient>
           </defs>
           <ellipse
             cx="85"
-            cy="104"
-            rx="70"
+            cy="106"
+            rx="68"
             ry="9"
-            fill="#4d54b8"
-            opacity="0.22"
+            fill={open ? "#53f3ee" : "#6a72b8"}
+            opacity="0.35"
           />
-          <g fill={`url(#cl-${level})`}>
-            <circle cx="28" cy="70" r="24" />
-            <circle cx="60" cy="54" r="30" />
-            <circle cx="106" cy="55" r="30" />
-            <circle cx="142" cy="70" r="24" />
-            <rect x="22" y="66" width="126" height="34" rx="17" />
-          </g>
+          <polygon
+            points="14,62 14,74 44,96 126,96 156,74 156,62 126,84 44,84"
+            fill={`url(#gs-${level})`}
+            stroke="#fff"
+            strokeOpacity="0.7"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
+          <polygon
+            points="14,62 44,40 126,40 156,62 126,84 44,84"
+            fill={`url(#gl-${level})`}
+            stroke="#fff"
+            strokeOpacity="0.95"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <polygon
+            points="32,62 52,47 118,47 138,62 118,77 52,77"
+            fill="none"
+            stroke="#fff"
+            strokeOpacity="0.4"
+            strokeWidth="1"
+          />
+          <polygon
+            points="44,40 90,40 62,84 44,84 14,62"
+            fill="#fff"
+            opacity="0.14"
+          />
+          <line
+            x1="44"
+            y1="40"
+            x2="44"
+            y2="84"
+            stroke="#fff"
+            strokeOpacity="0.3"
+          />
+          <line
+            x1="126"
+            y1="40"
+            x2="126"
+            y2="84"
+            stroke="#fff"
+            strokeOpacity="0.3"
+          />
           {open && (
             <>
-              <ellipse
-                cx="85"
-                cy="62"
-                rx="76"
-                ry="40"
+              <polygon
+                className="holo-dash"
+                points="8,62 42,34 128,34 162,62 128,90 42,90"
                 fill="none"
-                stroke="#fff3a0"
-                strokeWidth="9"
-                opacity="0.35"
-              />
-              <ellipse
-                cx="85"
-                cy="62"
-                rx="76"
-                ry="40"
-                fill="none"
-                stroke="#ffe66d"
-                strokeWidth="4"
+                stroke="#7df9ff"
+                strokeWidth="2.5"
+                strokeDasharray="8 6"
                 opacity="0.95"
+              />
+              <polygon
+                points="8,62 42,34 128,34 162,62 128,90 42,90"
+                fill="none"
+                stroke="#7df9ff"
+                strokeWidth="9"
+                opacity="0.18"
               />
             </>
           )}
-          <path
-            d="M26 88 Q85 106 144 88"
-            fill="none"
-            stroke="#c4d2fb"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
           <rect
             x="52"
-            y="82"
+            y="101"
             width="66"
-            height="9"
-            rx="4.5"
+            height="7"
+            rx="3.5"
             fill="#fff"
-            opacity="0.8"
+            opacity="0.25"
           />
           <rect
             x="52"
-            y="82"
+            y="101"
             width={complete ? 66 : 0}
-            height="9"
-            rx="4.5"
-            fill="#ffe66d"
+            height="7"
+            rx="3.5"
+            fill="#7df9ff"
           />
-          {open && <Chest x={140} y={64} open={complete} />}
-          <g transform="translate(15.3 -3) scale(0.82)">
+          {open && <Crystal x={146} y={50} lit={complete} />}
+          <g transform="translate(15.3 8) scale(0.82)">
             <polygon
               points="35,52 35,66 60,92 110,92 135,66 135,52 110,78 60,78"
               fill={side}
