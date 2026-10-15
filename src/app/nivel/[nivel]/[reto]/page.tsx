@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { UserBar } from "@/components/brand/user-bar";
 import { Player } from "@/components/game/player";
+import { LevelGate } from "@/components/map/level-gate";
 import { challengesOf, CHALLENGES, getChallenge } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
 
@@ -54,7 +55,9 @@ export default function RetoPage({ params }: { params: Params }) {
             ← Retos del nivel {level.level}
           </Link>
         </div>
-        <Player level={level} total={challengesOf(level.level).length} />
+        <LevelGate level={level.level}>
+          <Player level={level} total={challengesOf(level.level).length} />
+        </LevelGate>
       </main>
     </>
   );

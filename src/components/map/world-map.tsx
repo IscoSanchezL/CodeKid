@@ -3,6 +3,7 @@ import { UserBar } from "@/components/brand/user-bar";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
 import { MapNode } from "./map-node";
+import { MapStateProvider } from "./use-current-level";
 import { MapRocket } from "./map-rocket";
 import { rng, smoothPath, type Pt } from "./path";
 import { StarsTotal } from "./stars-total";
@@ -256,21 +257,23 @@ export function WorldMap() {
             </g>
           </svg>
 
-          <ol className="absolute inset-0">
-            {LEVELS.map((l, i) => (
-              <MapNode
-                key={l.id}
-                level={l.id}
-                title={l.title}
-                icon={ICONS[i]}
-                x={NODES[i][0]}
-                y={NODES[i][1]}
-                open={PLAYABLE_LEVELS.includes(l.id)}
-              />
-            ))}
-          </ol>
+          <MapStateProvider>
+            <ol className="absolute inset-0">
+              {LEVELS.map((l, i) => (
+                <MapNode
+                  key={l.id}
+                  level={l.id}
+                  title={l.title}
+                  icon={ICONS[i]}
+                  x={NODES[i][0]}
+                  y={NODES[i][1]}
+                  open={PLAYABLE_LEVELS.includes(l.id)}
+                />
+              ))}
+            </ol>
 
-          <MapRocket nodes={NODES} trail={TRAIL} />
+            <MapRocket nodes={NODES} trail={TRAIL} />
+          </MapStateProvider>
         </div>
       </div>
     </div>

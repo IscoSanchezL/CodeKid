@@ -3,7 +3,7 @@
 //   POST { level, challenge, program }  con la sesión del alumno
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { run } from "./engine/interpreter.ts";
-import { getChallenge } from "./engine/levels.ts";
+import { challengesOf, getChallenge } from "./engine/levels.ts";
 import type { Atom, AtomKind, Block, BlockType, CondExpr, Turn } from "./engine/types.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -19,6 +19,8 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
+/** Estrellas que hay que reunir en un planeta para poder jugar el siguiente. */
+const PASS_STARS = 11;
 const MAX_BLOCKS = 60;
 const MAX_DEPTH = 4;
 const ATOMS: AtomKind[] = ["wall", "free", "coin", "goal"];
@@ -102,13 +104,23 @@ Deno.serve(async (req) => {
       return json({ error: e instanceof Error ? e.message : "Programa no válido" }, 400);
     }
 
+    const { data: profile } = await admin.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
+    const isStudent = profile?.role === "student";
+
+    // Un planeta solo se juega si el alumno reunió las estrellas del anterior (así no se salta por la dirección).
+    if (isStudent && level.level > 1) {
+      const need = Math.min(PASS_STARS, challengesOf(level.level - 1).length * 3);
+      const { data: rows } = await admin.from("progress").select("stars").eq("student_id", auth.user.id).eq("level", level.level - 1);
+      const have = (rows ?? []).reduce((n: number, r: { stars: number | null }) => n + (r.stars ?? 0), 0);
+      if (have < need) return json({ error: `Este planeta todavía está cerrado: saca ${need} estrellas en el anterior.` }, 403);
+    }
+
     const result = run(level, program);
     const summary = { status: result.status, stars: result.stars, blocks: result.blocks };
     if (result.status !== "win") return json({ ...summary, reward: null });
 
     // Solo los alumnos ganan monedas y guardan progreso (un docente que prueba el reto, no).
-    const { data: profile } = await admin.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
-    if (profile?.role !== "student") return json({ ...summary, reward: null });
+    if (!isStudent) return json({ ...summary, reward: null });
 
     const { data: reward, error } = await admin.rpc("award_progress", {
       p_student: auth.user.id,

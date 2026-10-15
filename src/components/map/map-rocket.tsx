@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Fuzzy } from "@/components/game/fuzzy";
 import { sfx } from "@/lib/audio";
-import { useMapProgress } from "./use-current-level";
+import { useMapState } from "./use-current-level";
 
 type Pt = readonly [number, number];
 const KEY = "codekid:map:rocket";
@@ -17,7 +17,7 @@ export function MapRocket({
   nodes: readonly Pt[];
   trail: string;
 }) {
-  const { current } = useMapProgress();
+  const { current } = useMapState();
   const [pos, setPos] = useState<{
     x: number;
     y: number;

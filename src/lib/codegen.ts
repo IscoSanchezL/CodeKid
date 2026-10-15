@@ -173,7 +173,8 @@ export function toCode(program: Block[], lang: Lang): string {
 
   const lines = emit(program, 0);
   if (lines.length === 0) return lang === "js" ? "// (programa vacío)" : "pass";
-  if (usesVar(program))
+  // JavaScript declara la variable al principio; Python solo la crea si el programa no empieza ya con «pasos = n»
+  if (usesVar(program) && (lang === "js" || program[0]?.type !== "setvar"))
     lines.unshift(lang === "js" ? "let pasos = 1;" : "pasos = 1");
   return lines.join("\n");
 }

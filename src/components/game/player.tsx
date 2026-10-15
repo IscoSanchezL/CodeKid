@@ -18,6 +18,7 @@ import {
 import { Burst, PopStars } from "@/components/fx/fx";
 import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
+import { UnlockNote } from "./unlock-note";
 import type { FuzzyVariant } from "./fuzzy";
 import { Workspace } from "./workspace";
 
@@ -246,6 +247,10 @@ export function Player({ level, total }: Props) {
                     />
                   )}
                   {isStudent && reward && <RewardPanel reward={reward} />}
+                  <UnlockNote
+                    key={`${save}-${reward ? 1 : 0}-${ready ? 1 : 0}`}
+                    level={level.level}
+                  />
                   {ready && wallet && !isStudent && (
                     <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
                       Estás probando como docente: aquí no se guardan estrellas

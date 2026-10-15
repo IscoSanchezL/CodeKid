@@ -4,7 +4,8 @@ import Link from "next/link";
 import { LevelStars } from "./level-stars";
 import { WORLDS } from "./island";
 import { Planet } from "./planets";
-import { useMapProgress } from "./use-current-level";
+import { useMapState } from "./use-current-level";
+import { PASS_STARS } from "@/lib/unlock";
 
 type Props = {
   level: number;
@@ -19,8 +20,11 @@ type Props = {
 const RINGED = new Set([3, 6, 9]);
 
 /** Planeta de un nivel: esfera con atmósfera, bandas, cráteres y su insignia. Se coloca en % sobre el mapa (viewBox 1000×700). */
-export function MapNode({ level, title, icon, x, y, open }: Props) {
-  const { current: here, done } = useMapProgress();
+export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
+  const { current: here, done, unlocked, ready } = useMapState();
+  // «exists»: el nivel tiene retos. «open»: además el jugador ya lo desbloqueó (11 estrellas en el planeta anterior).
+  const open =
+    exists && (unlocked.has(level) || !ready) && (ready || level === 1);
   const current = open && here === level;
   const complete = open && done.has(level);
   const w = WORLDS[(level - 1) % WORLDS.length];
@@ -178,7 +182,7 @@ export function MapNode({ level, title, icon, x, y, open }: Props) {
             <LevelStars level={level} />
           ) : (
             <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white/70">
-              Próximamente
+              {exists ? `🔒 Saca ${PASS_STARS}★ antes` : "Próximamente"}
             </span>
           )}
         </div>
