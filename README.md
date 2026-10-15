@@ -2,7 +2,7 @@
 
 Plataforma web de programación para estudiantes de **9 a 16 años** (4.º de primaria a 3.º de secundaria). El alumno empieza moviendo personajes con bloques visuales y termina escribiendo JavaScript y Python reales.
 
-> Estado: **Hito 1 completado** (base, sistema de diseño, auth y esquema de datos).
+> Estado: **Hitos 1-3** (base, motor de juego, niveles 1-2, acceso por clase, monedas y tienda de trajes).
 
 ## Ruta de aprendizaje
 
@@ -39,6 +39,13 @@ cp .env.example .env.local   # rellena las claves de Supabase
 npm run dev                  # http://localhost:3000
 npm run lint && npm run typecheck && npm test
 ```
+
+## Cómo funciona por dentro
+
+- **Acceso por clase:** el docente crea la clase (código propio, p. ej. `KID1A`, y clave opcional, p. ej. `1A`); los alumnos escriben el código, tocan su nombre y la clave. Función `class-access`.
+- **Monedas:** solo se ganan al superar retos. La función `submit-result` vuelve a ejecutar el programa en el servidor con el mismo motor del juego y, si es válido, llama a `award_progress`. 10 monedas por reto nuevo, 5 por cada estrella nueva y un bono diario.
+- **Tienda:** catálogo en `src/shop/catalog.ts` (y en la tabla `shop_items`; un test comprueba que coinciden). Comprar y vestirse pasan por `buy_item` / `equip_item`, que validan saldo y propiedad.
+- **Al añadir niveles:** ejecuta `node scripts/sync-edge-engine.mjs` y vuelve a desplegar `submit-result`; un test avisa si se te olvida.
 
 El esquema está en `supabase/migrations/` y ya está aplicado al proyecto Supabase **CodeKid** (`fomdxwpxydxtqkbjtozl`).
 

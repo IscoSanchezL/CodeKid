@@ -125,6 +125,9 @@ export function WorldMap() {
             <span className="block text-xs font-semibold text-cyan-200">Aprende a programar</span>
           </div>
           <div className="flex items-center gap-3 rounded-full bg-surface/90 px-3 py-1.5 text-sm shadow">
+            <Link href="/tienda" className="rounded-full bg-[#ffc524] px-3 py-1 font-extrabold text-[#0b1440] shadow-[0_2px_0_#c78f00]">
+              🛍️ Tienda
+            </Link>
             <StarsTotal />
             <UserBar />
           </div>

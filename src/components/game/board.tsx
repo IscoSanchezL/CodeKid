@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { parseLevel } from "@/engine/interpreter";
 import type { Level, Snapshot } from "@/engine/types";
 import { Duck, Piece, Pond, type PieceKind } from "@/components/scenery/pieces";
-import { Fuzzy, type FuzzyVariant } from "./fuzzy";
+import { Fuzzy, type FuzzyVariant, type Outfit } from "./fuzzy";
 
 const T = 64; // lado de una casilla (px)
 
@@ -48,9 +48,10 @@ type Props = {
   index: number;
   celebrate?: boolean;
   variant?: FuzzyVariant;
+  outfit?: Outfit;
 };
 
-export function Board({ level, snapshots, index, celebrate = false, variant = "cyan" }: Props) {
+export function Board({ level, snapshots, index, celebrate = false, variant = "cyan", outfit }: Props) {
   const map = useMemo(() => parseLevel(level), [level]);
   const cols = map.width;
   const rows = map.height;
@@ -265,7 +266,7 @@ export function Board({ level, snapshots, index, celebrate = false, variant = "c
           }}
         >
           <div key={i} className={current.bump ? "fz-bump" : moved ? "fz-hop" : turned ? "fz-turn" : celebrate ? "fz-cheer" : "fz-idle"}>
-            <Fuzzy variant={variant} dir={current.dir} mood={mood} size={SPR} />
+            <Fuzzy variant={variant} outfit={outfit} dir={current.dir} mood={mood} size={SPR} />
           </div>
         </div>
       </div>

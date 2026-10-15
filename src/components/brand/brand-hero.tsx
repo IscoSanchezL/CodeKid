@@ -12,7 +12,7 @@ const SOURCES = ["/brand/codekid-logo.jpg", "/brand/codekid-logo.png", "/brand/c
 
 function Placeholder() {
   return (
-    <svg viewBox="0 0 600 400" className="block h-auto w-full" role="img" aria-label="CodeKid — Juega. Crea. Programa.">
+    <svg viewBox="0 0 600 260" className="block h-auto w-full" role="img" aria-label="CodeKid">
       <defs>
         <radialGradient id="bh-glow" cx="50%" cy="38%" r="60%">
           <stop offset="0%" stopColor="#12306e" />
@@ -39,7 +39,7 @@ function Placeholder() {
           <feGaussianBlur stdDeviation="10" />
         </filter>
       </defs>
-      <rect width="600" height="400" fill="url(#bh-glow)" />
+      <rect width="600" height="260" fill="url(#bh-glow)" />
       <g filter="url(#bh-blur)" opacity="0.7">
         <path d="M205 80 L110 160 L205 240" fill="none" stroke="#1f9bff" strokeWidth="34" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M395 80 L490 160 L395 240" fill="none" stroke="#ff9a2e" strokeWidth="34" strokeLinecap="round" strokeLinejoin="round" />
@@ -51,17 +51,49 @@ function Placeholder() {
           <Fuzzy variant="cyan" size={150} dir={1} mood="happy" outfit={{ glasses: "gl-nerd" }} />
         </div>
       </foreignObject>
-      <g fontFamily="inherit" fontWeight="900" fontSize="98" textAnchor="middle">
-        <text x="300" y="352" fill="#0a2a6a" transform="translate(5 6)">
+    </svg>
+  );
+}
+
+
+/** Texto de marca: «CodeKid» con degradado y relieve + el lema. Va debajo de la imagen. */
+export function BrandText({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 600 150" className={`block h-auto w-full ${className}`} role="img" aria-label="CodeKid — Juega. Crea. Programa.">
+      <defs>
+        <linearGradient id="bt-silver" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="55%" stopColor="#c9d3e6" />
+          <stop offset="100%" stopColor="#8d9bb8" />
+        </linearGradient>
+        <linearGradient id="bt-cyan" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#8af0ff" />
+          <stop offset="100%" stopColor="#1ab4ff" />
+        </linearGradient>
+        <linearGradient id="bt-orange" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffd43b" />
+          <stop offset="100%" stopColor="#ff8a3d" />
+        </linearGradient>
+        <filter id="bt-glow" x="-20%" y="-40%" width="140%" height="180%">
+          <feGaussianBlur stdDeviation="6" />
+        </filter>
+      </defs>
+      <g fontFamily="inherit" fontWeight="900" fontSize="96" textAnchor="middle">
+        <text x="300" y="96" fill="#1ab4ff" opacity="0.5" filter="url(#bt-glow)">
           Code<tspan>Kid</tspan>
         </text>
-        <text x="300" y="352" stroke="#0a1a40" strokeWidth="5" paintOrder="stroke" fill="url(#bh-silver)">
-          Code<tspan fill="url(#bh-cyan)">Kid</tspan>
+        <text x="300" y="96" fill="#0a2a6a" transform="translate(5 6)">
+          Code<tspan>Kid</tspan>
+        </text>
+        <text x="300" y="96" stroke="#0a1a40" strokeWidth="5" paintOrder="stroke" fill="url(#bt-silver)">
+          Code<tspan fill="url(#bt-cyan)">Kid</tspan>
         </text>
       </g>
-      <text x="300" y="385" textAnchor="middle" fill="#9fb4e6" fontSize="17" fontWeight="700" letterSpacing="4">
-        JUEGA · CREA · PROGRAMA
-      </text>
+      <g fontFamily="inherit" fontWeight="800" fontSize="19" letterSpacing="5" textAnchor="middle">
+        <text x="300" y="138" fill="#9fb4e6">
+          <tspan fill="#8af0ff">JUEGA</tspan> · <tspan fill="#ffffff">CREA</tspan> · <tspan fill="url(#bt-orange)">PROGRAMA</tspan>
+        </text>
+      </g>
     </svg>
   );
 }
@@ -75,7 +107,7 @@ export function BrandHero({ className = "" }: { className?: string }) {
       {idx < SOURCES.length ? (
         <Image
           src={SOURCES[idx]}
-          alt="CodeKid — Juega. Crea. Programa."
+          alt="Personaje de CodeKid con visor de programador"
           width={1536}
           height={1024}
           priority
@@ -86,6 +118,9 @@ export function BrandHero({ className = "" }: { className?: string }) {
       ) : (
         <Placeholder />
       )}
+      <div className="-mt-6 px-4 pb-4">
+        <BrandText />
+      </div>
     </div>
   );
 }

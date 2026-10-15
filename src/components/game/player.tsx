@@ -8,7 +8,10 @@ import { parseLevel, run } from "@/engine/interpreter";
 import { addBlock, countBlocks, makeBlock, removeBlock, setTimes } from "@/engine/program";
 import type { Block, BlockType, FailReason, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
+import { submitResult, type Reward } from "@/lib/wallet";
+import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
+import type { FuzzyVariant } from "./fuzzy";
 import { blockLabel, ProgramEditor } from "./program-editor";
 
 const FAIL_TEXT: Record<FailReason, string> = {
@@ -28,6 +31,12 @@ export function Player({ level, total }: Props) {
   const [playing, setPlaying] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const saved = useRef(false);
+  const { wallet, ready } = useWallet();
+  const [reward, setReward] = useState<Reward | null>(null);
+  const [rewardError, setRewardError] = useState<string | null>(null);
+  const isStudent = wallet?.role === "student";
+  const variant = (wallet?.avatar.variant as FuzzyVariant | undefined) ?? "cyan";
+  const outfit = { hat: wallet?.avatar.hat, glasses: wallet?.avatar.glasses, neck: wallet?.avatar.neck };
 
   const initial = useMemo(() => {
     const { start } = parseLevel(level);
@@ -47,11 +56,18 @@ export function Player({ level, total }: Props) {
   }, [playing, index, result]);
 
   useEffect(() => {
-    if (finished && result?.status === "win" && !saved.current) {
-      saved.current = true;
+    if (!(finished && result?.status === "win") || saved.current || !ready) return;
+    saved.current = true;
+    if (!wallet) {
+      // Sin sesión: se guarda solo en este navegador y no hay monedas
       void saveResult(level.level, level.challenge, result.stars, result.blocks);
+      return;
     }
-  }, [finished, result, level]);
+    // Con sesión: el servidor vuelve a ejecutar el programa y, si es válido, guarda y paga
+    submitResult(level.level, level.challenge, program)
+      .then((r) => setReward(r.reward))
+      .catch((e: unknown) => setRewardError(e instanceof Error ? e.message : "No se pudo guardar el progreso"));
+  }, [finished, result, level, wallet, ready, program]);
 
   const editing = !playing && result === null;
 
@@ -64,10 +80,14 @@ export function Player({ level, total }: Props) {
     setResult(null);
     setIndex(0);
     saved.current = false;
+    setReward(null);
+    setRewardError(null);
   }
 
   function execute() {
     saved.current = false;
+    setReward(null);
+    setRewardError(null);
     const r = run(level, program);
     setResult(r);
     setIndex(0);
@@ -85,6 +105,8 @@ export function Player({ level, total }: Props) {
           snapshots={snapshots}
           index={result ? index : 0}
           celebrate={finished && result?.status === "win"}
+          variant={variant}
+          outfit={outfit}
         />
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -125,6 +147,17 @@ export function Player({ level, total }: Props) {
                     </li>
                   )}
                 </ul>
+                {rewardError && (
+                  <p role="alert" className="mt-3 text-sm font-medium text-danger">
+                    {rewardError}
+                  </p>
+                )}
+                {isStudent && reward && <RewardPanel reward={reward} />}
+                {ready && !wallet && (
+                  <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
+                    Entra con el código de tu clase para guardar tu progreso y ganar monedas 🪙
+                  </p>
+                )}
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   <Button variant="outline" onClick={reset}>
                     Mejorar
@@ -212,6 +245,29 @@ export function Player({ level, total }: Props) {
           ← Todos los retos del nivel {level.level}
         </Link>
       </aside>
+    </div>
+  );
+}
+
+function RewardPanel({ reward }: { reward: Reward }) {
+  const total = reward.coins + reward.bonus;
+  return (
+    <div className="mt-4 rounded-2xl bg-warn/15 p-4" role="status" aria-label={`Ganaste ${total} monedas`}>
+      <p className="text-3xl font-extrabold text-warn">
+        <span aria-hidden>🪙</span> +{total}
+      </p>
+      <ul className="mt-1 text-sm text-fg/80">
+        {reward.first && <li>Reto superado: +10</li>}
+        {reward.starsAfter > reward.starsBefore && <li>Estrellas nuevas: +{(reward.starsAfter - reward.starsBefore) * 5}</li>}
+        {reward.bonus > 0 && <li>Bono del día (racha de {reward.streak}): +{reward.bonus}</li>}
+        {total === 0 && <li>Ya tenías este reto. Consigue más estrellas para ganar más monedas.</li>}
+      </ul>
+      <p className="mt-2 text-sm font-semibold">
+        Tienes {reward.balance} monedas ·{" "}
+        <Link href="/tienda" className="text-brand underline-offset-2 hover:underline">
+          Ir a la tienda
+        </Link>
+      </p>
     </div>
   );
 }

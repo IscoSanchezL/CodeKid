@@ -1,39 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
+import { useWallet } from "@/components/shop/use-wallet";
 import { createClient } from "@/lib/supabase/client";
 
-type Me = { id: string; name: string; role: string };
-
-/** Muestra quién juega y permite cambiar de alumno (equipos compartidos del aula). */
+/** Muestra quién juega, sus monedas y permite cambiar de alumno (equipos compartidos del aula). */
 export function UserBar() {
   const router = useRouter();
-  const [me, setMe] = useState<Me | null | undefined>(undefined);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const supabase = createClient();
-        const { data: auth } = await supabase.auth.getUser();
-        if (!auth.user) return setMe(null);
-        const { data } = await supabase
-          .from("profiles")
-          .select("display_name, role")
-          .eq("id", auth.user.id)
-          .maybeSingle();
-        setMe(
-          data
-            ? { id: auth.user.id, name: data.display_name, role: data.role }
-            : null,
-        );
-      } catch {
-        setMe(null);
-      }
-    })();
-  }, []);
+  const { wallet, ready } = useWallet();
 
   async function leave() {
     await createClient().auth.signOut();
@@ -41,21 +17,31 @@ export function UserBar() {
     router.refresh();
   }
 
-  if (me === undefined) return null;
-  if (me === null) {
+  if (!ready) return null;
+  if (!wallet) {
     return (
       <Link href="/clase" className="rounded-xl bg-surface px-3 py-1.5 text-sm font-bold text-brand shadow-[0_3px_0_0_rgb(var(--border))]">
         Entrar con mi clase
       </Link>
     );
   }
-  const staff = me.role === "teacher" || me.role === "admin";
+  const staff = wallet.role === "teacher" || wallet.role === "admin";
   return (
     <div className="flex items-center gap-3 text-sm">
       <span className="flex items-center gap-2 font-semibold">
-        <FuzzyAvatar id={me.id} size={36} />
-        {me.name}
+        <FuzzyAvatar id={wallet.id} avatar={wallet.avatar} size={36} />
+        {wallet.name}
       </span>
+      {!staff && (
+        <Link
+          href="/tienda"
+          className="flex items-center gap-1 rounded-full bg-warn/20 px-3 py-1 font-extrabold text-fg hover:bg-warn/35"
+          aria-label={`${wallet.coins} monedas. Ir a la tienda`}
+        >
+          <span aria-hidden>🪙</span>
+          {wallet.coins}
+        </Link>
+      )}
       {staff && (
         <Link href="/docente" className="font-medium text-brand">
           Panel
