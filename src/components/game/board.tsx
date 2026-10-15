@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseLevel } from "@/engine/interpreter";
 import type { Level, Snapshot } from "@/engine/types";
-import { RainbowArch, SkyPiece, type SkyKind } from "@/components/scenery/sky";
+import { SkyPiece, type SkyKind } from "@/components/scenery/sky";
 import { Fuzzy, type FuzzyVariant, type Outfit } from "./fuzzy";
 
 const T = 64; // lado de una casilla (px)
@@ -31,14 +31,38 @@ const STAR =
   "M0 -15 L4.4 -5 L15 -4.6 L6.9 2.4 L9.3 13 L0 7.4 L-9.3 13 L-6.9 2.4 L-15 -4.6 L-4.4 -5 Z";
 
 function Flag() {
+  const cols = 4;
+  const rows = 3;
+  const size = 6.5;
   return (
     <g>
       <ellipse cx="0" cy="2" rx="12" ry="4" fill="#000" opacity="0.18" />
       <rect x="-1.8" y="-46" width="3.6" height="48" rx="1.5" fill="#eef2f7" />
       <circle cx="0" cy="-47" r="4" fill="#ffc524" />
       <g className="bd-wave" style={{ transformOrigin: "2px -40px" }}>
-        <path d="M2 -42 H30 L24 -32 L30 -22 H2 Z" fill="#ff4d6d" />
-        <path d="M2 -42 H15 V-22 H2 Z" fill="#fff" opacity="0.25" />
+        <rect
+          x="2"
+          y="-44"
+          width={cols * size}
+          height={rows * size}
+          fill="#fff"
+          stroke="#1f2937"
+          strokeWidth="1"
+        />
+        {Array.from({ length: cols * rows }, (_, k) => {
+          const cx = k % cols;
+          const cy = Math.floor(k / cols);
+          return (cx + cy) % 2 === 0 ? (
+            <rect
+              key={k}
+              x={2 + cx * size}
+              y={-44 + cy * size}
+              width={size}
+              height={size}
+              fill="#1f2937"
+            />
+          ) : null;
+        })}
       </g>
     </g>
   );
@@ -187,6 +211,10 @@ export function Board({
               <stop offset="0%" stopColor="#6fe0fb" />
               <stop offset="100%" stopColor="#14b0e6" />
             </linearGradient>
+            <linearGradient id="bd-start" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f4fffa" />
+              <stop offset="100%" stopColor="#bff3d6" />
+            </linearGradient>
             <linearGradient id="bd-goal" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#fff3b0" />
               <stop offset="100%" stopColor="#ffd43b" />
@@ -224,8 +252,14 @@ export function Board({
                   width={T - 3}
                   height={T - 3}
                   rx="9"
-                  fill={ch === "G" ? "url(#bd-goal)" : "url(#bd-tile)"}
-                  stroke="#0c92c8"
+                  fill={
+                    ch === "G"
+                      ? "#ffffff"
+                      : ch === "S"
+                        ? "url(#bd-start)"
+                        : "url(#bd-tile)"
+                  }
+                  stroke={ch === "S" ? "#22a45d" : "#0c92c8"}
                   strokeOpacity="0.35"
                   strokeWidth="1.5"
                 />
@@ -248,13 +282,59 @@ export function Board({
                   opacity="0.18"
                 />
                 {ch === "S" && (
-                  <circle
-                    cx={px + T / 2}
-                    cy={py + T / 2}
-                    r="19"
-                    fill="#fff"
-                    opacity="0.35"
-                  />
+                  <>
+                    <rect
+                      x={px + 6}
+                      y={py + 6}
+                      width={T - 12}
+                      height={T - 12}
+                      rx="7"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="2.5"
+                      strokeDasharray="5 4"
+                    />
+                    <g transform={`translate(${px + 14} ${py + 20})`}>
+                      <rect
+                        x="-1.3"
+                        y="-14"
+                        width="2.6"
+                        height="18"
+                        rx="1"
+                        fill="#6b7280"
+                      />
+                      <path d="M1 -14 H15 L12 -9 L15 -4 H1 Z" fill="#22c55e" />
+                    </g>
+                  </>
+                )}
+                {ch === "G" && (
+                  <g>
+                    {Array.from({ length: 16 }, (_, k) => {
+                      const cx = k % 4;
+                      const cy = Math.floor(k / 4);
+                      const size = (T - 12) / 4;
+                      return (cx + cy) % 2 === 0 ? (
+                        <rect
+                          key={k}
+                          x={px + 6 + cx * size}
+                          y={py + 6 + cy * size}
+                          width={size}
+                          height={size}
+                          fill="#1f2937"
+                        />
+                      ) : null;
+                    })}
+                    <rect
+                      x={px + 6}
+                      y={py + 6}
+                      width={T - 12}
+                      height={T - 12}
+                      rx="3"
+                      fill="none"
+                      stroke="#1f2937"
+                      strokeWidth="1.5"
+                    />
+                  </g>
                 )}
               </g>
             );
@@ -275,14 +355,6 @@ export function Board({
               <SkyPiece kind={d.kind} x={d.x} y={d.y} s={d.s} v={d.v} />
             </g>
           ))}
-
-          {/* túnel de arco iris sobre la meta */}
-          <RainbowArch
-            x={ox + map.goal.x * T + T / 2}
-            y={oy + map.goal.y * T + 4}
-            r={T * 0.62}
-            w={6.5}
-          />
 
           {/* aro de la meta, estrellas y bandera */}
           <circle
