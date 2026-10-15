@@ -2,7 +2,7 @@
 
 Plataforma web de programación para estudiantes de **9 a 16 años** (4.º de primaria a 3.º de secundaria). El alumno empieza moviendo personajes con bloques visuales y termina escribiendo JavaScript y Python reales.
 
-> Estado: en planificación. Este README describe la visión del proyecto.
+> Estado: **Hito 1 completado** (base, sistema de diseño, auth y esquema de datos).
 
 ## Ruta de aprendizaje
 
@@ -31,9 +31,20 @@ Plataforma web de programación para estudiantes de **9 a 16 años** (4.º de pr
 
 Next.js · TypeScript · Tailwind CSS · shadcn/ui · Supabase · Blockly · Monaco · Phaser · Vercel
 
+## Desarrollo local
+
+```bash
+npm install
+cp .env.example .env.local   # rellena las claves de Supabase
+npm run dev                  # http://localhost:3000
+npm run lint && npm run typecheck && npm test
+```
+
+El esquema de base de datos está en `supabase/migrations/` (aplícalo en tu proyecto de Supabase).
+
 ## Hitos
 
-1. Base, autenticación y sistema de diseño
+1. ✅ Base, autenticación y sistema de diseño
 2. Motor de juego e intérprete de bloques
 3. Niveles 1-4 jugables
 4. Panel docente y aulas

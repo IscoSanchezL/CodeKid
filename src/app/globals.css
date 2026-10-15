@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens (RGB triplets) — claro por defecto, oscuro por preferencia o por data-theme */
+:root {
+  --bg: 248 249 252;
+  --surface: 255 255 255;
+  --surface-2: 241 243 249;
+  --fg: 20 24 40;
+  --muted: 100 108 133;
+  --border: 224 228 239;
+  --brand: 99 71 255;
+  --brand-fg: 255 255 255;
+  --accent: 255 138 76;
+  --success: 22 163 112;
+  --warn: 234 170 8;
+  --danger: 225 66 76;
+  --radius-lg: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: 12 14 24;
+    --surface: 21 24 38;
+    --surface-2: 30 34 52;
+    --fg: 238 241 250;
+    --muted: 150 158 184;
+    --border: 42 47 70;
+    --brand: 134 112 255;
+    --brand-fg: 12 14 24;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: 12 14 24;
+  --surface: 21 24 38;
+  --surface-2: 30 34 52;
+  --fg: 238 241 250;
+  --muted: 150 158 184;
+  --border: 42 47 70;
+  --brand: 134 112 255;
+  --brand-fg: 12 14 24;
+}
+
+/* Accesibilidad: alto contraste y fuente para dislexia (se activan por data-attrs) */
+:root[data-contrast="high"] {
+  --border: 20 24 40;
+  --muted: 60 66 90;
+}
+:root[data-font="dyslexia"] body {
+  font-family: "OpenDyslexic", "Comic Sans MS", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+html {
+  color-scheme: light dark;
+}
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(var(--brand));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
