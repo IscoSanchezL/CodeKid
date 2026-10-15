@@ -8,7 +8,7 @@ import { parseLevel, run } from "@/engine/interpreter";
 import type { Block, FailReason, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
 import { queuePending, removePending } from "@/lib/pending-results";
-import { submitResult, SubmitError, type Reward } from "@/lib/wallet";
+import { logFailedAttempt, submitResult, SubmitError, type Reward } from "@/lib/wallet";
 import { useWallet } from "@/components/shop/use-wallet";
 import { Board } from "./board";
 import type { FuzzyVariant } from "./fuzzy";
@@ -89,6 +89,13 @@ export function Player({ level, total }: Props) {
     if (wallet.role === "student") void persist();
   }, [finished, result, level, wallet, ready, persist]);
 
+  const failLogged = useRef(false);
+  useEffect(() => {
+    if (!finished || result?.status !== "fail" || failLogged.current || !ready) return;
+    failLogged.current = true;
+    if (wallet?.role === "student") logFailedAttempt(level.level, level.challenge);
+  }, [finished, result, wallet, ready, level]);
+
   const editing = !playing && result === null;
 
   function edit(next: Block[]) {
@@ -100,6 +107,7 @@ export function Player({ level, total }: Props) {
     setResult(null);
     setIndex(0);
     saved.current = false;
+    failLogged.current = false;
     setReward(null);
     setSave("idle");
     setSaveMessage(null);
@@ -107,6 +115,7 @@ export function Player({ level, total }: Props) {
 
   function execute() {
     saved.current = false;
+    failLogged.current = false;
     setReward(null);
     setSave("idle");
     setSaveMessage(null);

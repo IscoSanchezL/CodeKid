@@ -83,6 +83,11 @@ export class SubmitError extends Error {
   }
 }
 
+/** Anota un intento fallido para que el docente vea dónde se atasca el alumno (sin esperar ni avisar si falla). */
+export function logFailedAttempt(level: number, challenge: number): void {
+  void Promise.resolve(createClient().rpc("log_attempt", { p_level: level, p_challenge: challenge })).catch(() => {});
+}
+
 /** Envía el programa al servidor, que lo comprueba con el mismo motor y reparte las monedas. */
 export async function submitResult(level: number, challenge: number, program: Block[]): Promise<SubmitResponse> {
   const supabase = createClient();
