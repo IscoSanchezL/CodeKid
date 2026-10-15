@@ -98,29 +98,30 @@ export function BrandText({ className = "" }: { className?: string }) {
   );
 }
 
-export function BrandHero({ className = "" }: { className?: string }) {
+/**
+ * Imagen principal del logo (con respaldo en vector si el archivo no existe).
+ * Con `blend`, el negro de la imagen se funde con el fondo (modo «screen»), para que flote en el cielo.
+ */
+export function BrandImage({ className = "", blend = false }: { className?: string; blend?: boolean }) {
   const [idx, setIdx] = useState(0);
-  return (
-    <div
-      className={`relative overflow-hidden rounded-3xl bg-black shadow-[0_0_0_2px_rgba(95,216,255,0.25),0_20px_50px_-12px_rgba(31,155,255,0.55)] ${className}`}
-    >
-      {idx < SOURCES.length ? (
-        <Image
-          src={SOURCES[idx]}
-          alt="Personaje de CodeKid con visor de programador"
-          width={1536}
-          height={1024}
-          priority
-          unoptimized
-          className="block h-auto w-full"
-          onError={() => setIdx((i) => i + 1)}
-        />
-      ) : (
-        <Placeholder />
-      )}
-      <div className="-mt-6 px-4 pb-4">
-        <BrandText />
-      </div>
+  const style = blend
+    ? { mixBlendMode: "screen" as const, WebkitMaskImage: "radial-gradient(ellipse 62% 66% at 50% 48%, #000 55%, transparent 100%)", maskImage: "radial-gradient(ellipse 62% 66% at 50% 48%, #000 55%, transparent 100%)" }
+    : undefined;
+  return idx < SOURCES.length ? (
+    <Image
+      src={SOURCES[idx]}
+      alt="Personaje de CodeKid con visor de programador"
+      width={1536}
+      height={1024}
+      priority
+      unoptimized
+      className={`block h-auto w-full ${className}`}
+      style={style}
+      onError={() => setIdx((i) => i + 1)}
+    />
+  ) : (
+    <div className={className} style={style}>
+      <Placeholder />
     </div>
   );
 }

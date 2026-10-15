@@ -64,7 +64,7 @@
   }
 }
 
-:root[data-theme="dark"] {
+[data-theme="dark"] {
   --bg: 5 11 42;
   --surface: 12 21 64;
   --surface-2: 19 32 88;
@@ -251,3 +251,131 @@ body {
 }
 .plank .text-muted { color: rgba(11, 20, 64, 0.72); }
 .plank .border-border { border-color: rgba(11, 20, 64, 0.35); }
+
+/* ── Cosmos de código (portada y acceso) ───────────────────────────────── */
+.cosmos {
+  background:
+    radial-gradient(ellipse at 50% 38%, #12275f 0%, #091038 45%, #03051a 100%);
+  color: #eef2ff;
+}
+.cosmos-layer {
+  transform: translate3d(calc(var(--px, 0) * var(--depth, 0) * 1px), calc(var(--py, 0) * var(--depth, 0) * 1px), 0);
+  transition: transform 0.35s ease-out;
+  will-change: transform;
+}
+@keyframes cosmos-float {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+.cosmos-float { animation: cosmos-float 9s ease-in-out infinite; }
+@keyframes cosmos-drift {
+  0% { transform: translate(0, 0) rotate(-6deg); }
+  25% { transform: translate(14px, -16px) rotate(4deg); }
+  50% { transform: translate(-6px, -26px) rotate(8deg); }
+  75% { transform: translate(-16px, -8px) rotate(-2deg); }
+  100% { transform: translate(0, 0) rotate(-6deg); }
+}
+.cosmos-drift { animation: cosmos-drift 14s ease-in-out infinite; }
+@keyframes cosmos-twinkle { 0%, 100% { opacity: var(--o, 0.4); transform: scale(1); } 50% { opacity: 1; transform: scale(1.6); } }
+.cosmos-twinkle { animation: cosmos-twinkle 4s ease-in-out infinite; }
+@keyframes cosmos-shoot {
+  0% { transform: translate(0, 0) rotate(28deg) scaleX(0.2); opacity: 0; }
+  6% { opacity: 1; }
+  22% { transform: translate(260px, 150px) rotate(28deg) scaleX(1); opacity: 0; }
+  100% { transform: translate(260px, 150px) rotate(28deg) scaleX(1); opacity: 0; }
+}
+.cosmos-shoot {
+  width: 90px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fff);
+  box-shadow: 0 0 10px #8af0ff;
+  opacity: 0;
+  animation: cosmos-shoot 9s ease-in infinite;
+  transform-origin: left center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cosmos-float, .cosmos-drift, .cosmos-twinkle, .cosmos-shoot { animation: none !important; }
+  .cosmos-layer { transform: none !important; transition: none !important; }
+}
+
+/* ── Portada: cosmos de código ─────────────────────────────────────────── */
+.cosmos-page {
+  background:
+    radial-gradient(ellipse 80% 50% at 15% 8%, rgba(31, 99, 240, 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 45% at 90% 40%, rgba(139, 61, 255, 0.18), transparent 60%),
+    radial-gradient(ellipse 70% 40% at 20% 90%, rgba(255, 138, 61, 0.1), transparent 60%),
+    #03051a;
+  color: #eef2ff;
+  position: relative;
+}
+.cosmos-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.2px 1.2px at 20px 30px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 120px 90px, #bcd7ff 50%, transparent 51%),
+    radial-gradient(1.6px 1.6px at 210px 20px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 300px 150px, #ffe6b0 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 80px 200px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 260px 260px, #b6f0ff 50%, transparent 51%);
+  background-size: 340px 300px;
+  opacity: 0.55;
+}
+.glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(160, 190, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.neon { transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s; }
+.neon:hover {
+  transform: translateY(-4px);
+  border-color: rgba(94, 227, 255, 0.7);
+  box-shadow: 0 0 0 1px rgba(94, 227, 255, 0.35), 0 0 34px -4px rgba(94, 227, 255, 0.45), 0 20px 50px -24px rgba(0, 0, 0, 0.7);
+}
+.text-neon {
+  background: linear-gradient(100deg, #8af0ff 0%, #5aa8ff 38%, #c9a4ff 68%, #ffb454 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px rgba(94, 160, 255, 0.45));
+}
+
+/* portal que gira detrás del logo */
+.portal { position: absolute; left: 50%; top: 50%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; pointer-events: none; }
+.portal-a {
+  width: min(86vw, 470px);
+  background: conic-gradient(from 0deg, #22d3ee, #6d4bff, #ff8a3d, #22d3ee);
+  -webkit-mask: radial-gradient(farthest-side, transparent 66%, #000 67%, #000 70%, transparent 74%);
+  mask: radial-gradient(farthest-side, transparent 66%, #000 67%, #000 70%, transparent 74%);
+  filter: blur(1.5px) drop-shadow(0 0 22px rgba(94, 160, 255, 0.8));
+  animation: portal-spin 26s linear infinite;
+  opacity: 0.85;
+}
+.portal-b {
+  width: min(74vw, 410px);
+  border: 2px dashed rgba(138, 240, 255, 0.45);
+  animation: portal-spin 40s linear infinite reverse;
+}
+@keyframes portal-spin { to { rotate: 360deg; } }
+
+/* lluvia de código */
+.code-rain { position: absolute; top: 0; bottom: 0; width: 1.4em; overflow: hidden; pointer-events: none; font-family: var(--font-mono), monospace; font-size: 13px; line-height: 1.25; white-space: pre; color: #5ee3ff; opacity: 0.35; text-align: center; -webkit-mask-image: linear-gradient(180deg, transparent, #000 25%, #000 70%, transparent); mask-image: linear-gradient(180deg, transparent, #000 25%, #000 70%, transparent); }
+.code-rain > span { display: block; animation: rain-fall linear infinite; text-shadow: 0 0 8px currentColor; }
+@keyframes rain-fall { from { transform: translateY(-60%); } to { transform: translateY(40%); } }
+
+/* cursor tipo máquina de escribir */
+@keyframes caret { 50% { opacity: 0; } }
+.caret { display: inline-block; width: 0.55em; height: 1.1em; margin-left: 2px; vertical-align: text-bottom; background: #5ee3ff; animation: caret 1s steps(1) infinite; }
+
+/* pulso suave de resplandor */
+@keyframes glow-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(94, 227, 255, 0.5); } 50% { box-shadow: 0 0 0 14px rgba(94, 227, 255, 0); } }
+.glow-pulse { animation: glow-pulse 2.2s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-a, .portal-b, .code-rain > span, .caret, .glow-pulse { animation: none !important; }
+}
