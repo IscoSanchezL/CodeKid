@@ -19,6 +19,7 @@ import {
   suggestPassword,
 } from "@/lib/class-codes";
 import { createClient } from "@/lib/supabase/client";
+import { AdminPanel } from "@/components/admin/admin-panel";
 import { ProgressPanel } from "./progress-panel";
 
 type Classroom = {
@@ -66,6 +67,7 @@ export function TeacherDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"progress" | "students">("progress");
+  const [view, setView] = useState<"classes" | "admin">("classes");
 
   const current = classes.find((c) => c.id === selected) ?? null;
 
@@ -96,6 +98,7 @@ export function TeacherDashboard() {
         role: profile.role,
         name: profile.display_name,
       });
+      if (profile.role === "admin") setView("admin");
       await loadClasses();
     })();
   }, [router, loadClasses]);
@@ -287,12 +290,36 @@ export function TeacherDashboard() {
           >
             Cerrar sesión
           </button>
-          <Link href="/actualizar-clave" className="mt-2 block text-sm font-medium text-brand">
+          <Link
+            href="/actualizar-clave"
+            className="mt-2 block text-sm font-medium text-brand"
+          >
             Cambiar mi contraseña
           </Link>
+
+          {me.role === "admin" && (
+            <div className="mt-3 grid gap-1 border-t border-border pt-3">
+              {(
+                [
+                  ["admin", "🛡️ Administración"],
+                  ["classes", "🏫 Mis clases"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setView(id)}
+                  aria-pressed={view === id}
+                  className={`rounded-xl px-3 py-2 text-left font-bold ${view === id ? "bg-brand text-brand-fg" : "hover:bg-surface-2"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </Card>
 
-        <Card className="p-4">
+        <Card className={`p-4 ${view === "admin" ? "hidden" : ""}`}>
           <h2 className="mb-3 font-bold">Mis clases</h2>
           <ul className="flex flex-col gap-1">
             {classes.map((c) => (
@@ -374,253 +401,276 @@ export function TeacherDashboard() {
       </aside>
 
       <section className="flex flex-col gap-4">
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl bg-danger/10 p-3 text-sm font-medium text-danger"
-          >
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p
-            role="status"
-            className="rounded-xl bg-success/10 p-3 text-sm font-medium text-success"
-          >
-            {notice}
-          </p>
-        )}
-
-        {!current ? (
-          <Card className="text-center text-muted">
-            Crea tu primera clase para obtener un código para tus alumnos.
-          </Card>
+        {view === "admin" && me.role === "admin" ? (
+          <AdminPanel
+            myId={me.id}
+            onOpenClass={(id) => {
+              setSelected(id);
+              setView("classes");
+            }}
+          />
         ) : (
           <>
-            <Card>
-              <p className="text-sm text-muted">
-                Así entran tus alumnos a «{current.name}»
-              </p>
-              <div className="mt-2 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                    1. Código de clase
-                  </p>
-                  <p className="font-mono text-4xl font-extrabold tracking-[0.15em] text-brand">
-                    {current.join_code}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                    2. Clave
-                  </p>
-                  <p className="font-mono text-4xl font-extrabold tracking-[0.15em]">
-                    {current.class_password ?? "—"}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-muted">
-                En{" "}
-                <Link href="/clase" className="font-semibold text-brand">
-                  /clase
-                </Link>{" "}
-                escriben el código, tocan su nombre
-                {current.class_password ? " y escriben la clave" : ""}.
-              </p>
-
-              <form
-                onSubmit={saveSettings}
-                className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-danger/10 p-3 text-sm font-medium text-danger"
               >
-                <Input
-                  label="Cambiar código"
-                  name="editCode"
-                  value={editCode}
-                  onChange={(e) => setEditCode(cleanCode(e.target.value))}
-                  className="font-mono uppercase tracking-widest"
-                  autoComplete="off"
-                />
-                <div className="flex flex-col gap-1.5">
-                  <Input
-                    label="Cambiar clave"
-                    name="editPassword"
-                    value={editPassword}
-                    disabled={!editUsePassword}
-                    onChange={(e) =>
-                      setEditPassword(cleanCode(e.target.value, 16))
-                    }
-                    className="font-mono uppercase tracking-widest"
-                    autoComplete="off"
-                  />
-                  <label className="flex items-center gap-2 text-xs font-medium">
-                    <input
-                      type="checkbox"
-                      checked={editUsePassword}
-                      onChange={(e) => setEditUsePassword(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                    Pedir clave
-                  </label>
-                </div>
-                <Button type="submit" disabled={busy || editCode.length < 4}>
-                  Guardar
-                </Button>
-              </form>
-            </Card>
-
-            <div
-              role="tablist"
-              aria-label="Secciones de la clase"
-              className="flex gap-2"
-            >
-              {(
-                [
-                  ["progress", "📊 Progreso"],
-                  ["students", "👥 Alumnos y acceso"],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === id}
-                  onClick={() => setTab(id)}
-                  className={`rounded-xl px-4 py-2 font-bold ${tab === id ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-border"}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {tab === "progress" && (
-              <ProgressPanel
-                classroomId={current.id}
-                students={students}
-                className={current.name}
-              />
+                {error}
+              </p>
+            )}
+            {notice && (
+              <p
+                role="status"
+                className="rounded-xl bg-success/10 p-3 text-sm font-medium text-success"
+              >
+                {notice}
+              </p>
             )}
 
-            {tab === "students" && (
+            {!current ? (
+              <Card className="text-center text-muted">
+                Crea tu primera clase para obtener un código para tus alumnos.
+              </Card>
+            ) : (
               <>
                 <Card>
-                  <h2 className="font-bold">Añadir alumnos</h2>
-                  <p className="mt-1 text-sm text-muted">
-                    Un nombre por línea. Usa solo el nombre de pila o un apodo:
-                    no pedimos correo ni datos personales.
+                  <p className="text-sm text-muted">
+                    Así entran tus alumnos a «{current.name}»
                   </p>
+                  <div className="mt-2 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                        1. Código de clase
+                      </p>
+                      <p className="font-mono text-4xl font-extrabold tracking-[0.15em] text-brand">
+                        {current.join_code}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                        2. Clave
+                      </p>
+                      <p className="font-mono text-4xl font-extrabold tracking-[0.15em]">
+                        {current.class_password ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-muted">
+                    En{" "}
+                    <Link href="/clase" className="font-semibold text-brand">
+                      /clase
+                    </Link>{" "}
+                    escriben el código, tocan su nombre
+                    {current.class_password ? " y escriben la clave" : ""}.
+                  </p>
+
                   <form
-                    onSubmit={addStudents}
-                    className="mt-3 flex flex-col gap-3"
+                    onSubmit={saveSettings}
+                    className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
                   >
-                    <textarea
-                      value={names}
-                      onChange={(e) => setNames(e.target.value)}
-                      rows={5}
-                      aria-label="Nombres de los alumnos"
-                      placeholder={"Ana\nLuis\nSofía"}
-                      className="rounded-xl border border-border bg-surface p-3 text-base"
+                    <Input
+                      label="Cambiar código"
+                      name="editCode"
+                      value={editCode}
+                      onChange={(e) => setEditCode(cleanCode(e.target.value))}
+                      className="font-mono uppercase tracking-widest"
+                      autoComplete="off"
                     />
-                    <label className="flex items-center gap-2 text-sm font-medium">
-                      <input
-                        type="checkbox"
-                        checked={requirePin}
-                        onChange={(e) => setRequirePin(e.target.checked)}
-                        className="h-4 w-4"
+                    <div className="flex flex-col gap-1.5">
+                      <Input
+                        label="Cambiar clave"
+                        name="editPassword"
+                        value={editPassword}
+                        disabled={!editUsePassword}
+                        onChange={(e) =>
+                          setEditPassword(cleanCode(e.target.value, 16))
+                        }
+                        className="font-mono uppercase tracking-widest"
+                        autoComplete="off"
                       />
-                      Además, un PIN individual de 4 números por alumno (se
-                      genera solo)
-                    </label>
-                    <Button type="submit" disabled={busy}>
-                      {busy ? "Añadiendo…" : "Añadir a la clase"}
+                      <label className="flex items-center gap-2 text-xs font-medium">
+                        <input
+                          type="checkbox"
+                          checked={editUsePassword}
+                          onChange={(e) => setEditUsePassword(e.target.checked)}
+                          className="h-4 w-4"
+                        />
+                        Pedir clave
+                      </label>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={busy || editCode.length < 4}
+                    >
+                      Guardar
                     </Button>
                   </form>
-
-                  {lastCreated.some((s) => s.pin) && (
-                    <div className="mt-4 rounded-xl border-2 border-dashed border-warn p-3">
-                      <p className="text-sm font-bold">
-                        PINs generados: anótalos o imprímelos, no se vuelven a
-                        mostrar.
-                      </p>
-                      <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-                        {lastCreated.map((s) => (
-                          <li
-                            key={s.id}
-                            className="flex justify-between rounded-lg bg-surface-2 px-3 py-1"
-                          >
-                            <span className="flex items-center gap-2">
-                              <FuzzyAvatar id={s.id} size={28} /> {s.name}
-                            </span>
-                            <span className="font-mono font-bold">{s.pin}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 print:hidden"
-                        onClick={() => window.print()}
-                      >
-                        Imprimir
-                      </Button>
-                    </div>
-                  )}
                 </Card>
 
-                <Card>
-                  <h2 className="mb-3 font-bold">
-                    Alumnos ({students.length})
-                  </h2>
-                  {students.length === 0 ? (
-                    <p className="text-sm text-muted">
-                      Todavía no hay alumnos en esta clase.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-border">
-                      {students.map((s) => (
-                        <li
-                          key={s.id}
-                          className="flex flex-wrap items-center gap-3 py-2"
-                        >
-                          <FuzzyAvatar id={s.id} avatar={s.avatar} size={40} />
-                          <span className="flex-1 font-semibold">{s.name}</span>
-                          <span
-                            className="text-sm font-bold text-warn"
-                            title="Monedas"
-                          >
-                            🪙 {s.coins ?? 0}
-                          </span>
-                          <span className="text-xs text-muted">
-                            {s.hasPin ? "🔒 con PIN" : "sin PIN"}
-                          </span>
+                <div
+                  role="tablist"
+                  aria-label="Secciones de la clase"
+                  className="flex gap-2"
+                >
+                  {(
+                    [
+                      ["progress", "📊 Progreso"],
+                      ["students", "👥 Alumnos y acceso"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === id}
+                      onClick={() => setTab(id)}
+                      className={`rounded-xl px-4 py-2 font-bold ${tab === id ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-border"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {tab === "progress" && (
+                  <ProgressPanel
+                    classroomId={current.id}
+                    students={students}
+                    className={current.name}
+                  />
+                )}
+
+                {tab === "students" && (
+                  <>
+                    <Card>
+                      <h2 className="font-bold">Añadir alumnos</h2>
+                      <p className="mt-1 text-sm text-muted">
+                        Un nombre por línea. Usa solo el nombre de pila o un
+                        apodo: no pedimos correo ni datos personales.
+                      </p>
+                      <form
+                        onSubmit={addStudents}
+                        className="mt-3 flex flex-col gap-3"
+                      >
+                        <textarea
+                          value={names}
+                          onChange={(e) => setNames(e.target.value)}
+                          rows={5}
+                          aria-label="Nombres de los alumnos"
+                          placeholder={"Ana\nLuis\nSofía"}
+                          className="rounded-xl border border-border bg-surface p-3 text-base"
+                        />
+                        <label className="flex items-center gap-2 text-sm font-medium">
+                          <input
+                            type="checkbox"
+                            checked={requirePin}
+                            onChange={(e) => setRequirePin(e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                          Además, un PIN individual de 4 números por alumno (se
+                          genera solo)
+                        </label>
+                        <Button type="submit" disabled={busy}>
+                          {busy ? "Añadiendo…" : "Añadir a la clase"}
+                        </Button>
+                      </form>
+
+                      {lastCreated.some((s) => s.pin) && (
+                        <div className="mt-4 rounded-xl border-2 border-dashed border-warn p-3">
+                          <p className="text-sm font-bold">
+                            PINs generados: anótalos o imprímelos, no se vuelven
+                            a mostrar.
+                          </p>
+                          <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                            {lastCreated.map((s) => (
+                              <li
+                                key={s.id}
+                                className="flex justify-between rounded-lg bg-surface-2 px-3 py-1"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <FuzzyAvatar id={s.id} size={28} /> {s.name}
+                                </span>
+                                <span className="font-mono font-bold">
+                                  {s.pin}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => resetPin(s, "random")}
+                            className="mt-3 print:hidden"
+                            onClick={() => window.print()}
                           >
-                            {s.hasPin ? "Nuevo PIN" : "Poner PIN"}
+                            Imprimir
                           </Button>
-                          {s.hasPin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => resetPin(s, "none")}
+                        </div>
+                      )}
+                    </Card>
+
+                    <Card>
+                      <h2 className="mb-3 font-bold">
+                        Alumnos ({students.length})
+                      </h2>
+                      {students.length === 0 ? (
+                        <p className="text-sm text-muted">
+                          Todavía no hay alumnos en esta clase.
+                        </p>
+                      ) : (
+                        <ul className="divide-y divide-border">
+                          {students.map((s) => (
+                            <li
+                              key={s.id}
+                              className="flex flex-wrap items-center gap-3 py-2"
                             >
-                              Quitar PIN
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-danger"
-                            onClick={() => remove(s)}
-                          >
-                            Eliminar
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </Card>
+                              <FuzzyAvatar
+                                id={s.id}
+                                avatar={s.avatar}
+                                size={40}
+                              />
+                              <span className="flex-1 font-semibold">
+                                {s.name}
+                              </span>
+                              <span
+                                className="text-sm font-bold text-warn"
+                                title="Monedas"
+                              >
+                                🪙 {s.coins ?? 0}
+                              </span>
+                              <span className="text-xs text-muted">
+                                {s.hasPin ? "🔒 con PIN" : "sin PIN"}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => resetPin(s, "random")}
+                              >
+                                {s.hasPin ? "Nuevo PIN" : "Poner PIN"}
+                              </Button>
+                              {s.hasPin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => resetPin(s, "none")}
+                                >
+                                  Quitar PIN
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-danger"
+                                onClick={() => remove(s)}
+                              >
+                                Eliminar
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </Card>
+                  </>
+                )}
               </>
             )}
           </>
