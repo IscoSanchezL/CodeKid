@@ -1,4 +1,4 @@
-import { Logo } from "@/components/brand/logo";
+import { BrandHero } from "@/components/brand/brand-hero";
 import { Meadow, SceneDecor } from "@/components/brand/scene-decor";
 import { Fuzzy } from "@/components/game/fuzzy";
 
@@ -7,7 +7,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="scene-sky relative min-h-dvh overflow-hidden">
       <SceneDecor sunClass="right-[8%] top-28 h-24 w-24" />
       <main className="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 pb-28 pt-10">
-        <Logo />
+        <BrandHero className="mx-auto w-full max-w-sm" />
         {children}
       </main>
       <Meadow height={64} />
