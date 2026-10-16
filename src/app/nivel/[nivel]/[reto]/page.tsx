@@ -6,7 +6,7 @@ import { UserBar } from "@/components/brand/user-bar";
 import { Player } from "@/components/game/player";
 import { LevelGate } from "@/components/map/level-gate";
 import { challengesOf, CHALLENGES, getChallenge } from "@/engine/levels";
-import { LEVELS } from "@/lib/levels";
+import { isAdvanced, levelMeta, planetOf } from "@/lib/levels";
 
 type Params = { nivel: string; reto: string };
 
@@ -25,7 +25,7 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
 export default function RetoPage({ params }: { params: Params }) {
   const level = getChallenge(Number(params.nivel), Number(params.reto));
   if (!level) notFound();
-  const meta = LEVELS.find((l) => l.id === level.level);
+  const meta = levelMeta(level.level);
 
   return (
     <>
@@ -34,7 +34,7 @@ export default function RetoPage({ params }: { params: Params }) {
           <Logo href="/mapa" />
           <div className="flex items-center gap-4">
             <p className="hidden text-sm font-medium text-muted sm:block">
-              Nivel {level.level} · {meta?.title}
+              {isAdvanced(level.level) ? "⚡ Avanzado" : `Nivel ${level.level}`} · {levelMeta(planetOf(level.level))?.title ?? meta?.title}
             </p>
             <UserBar />
           </div>

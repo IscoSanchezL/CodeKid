@@ -29,14 +29,18 @@ describe("niveles de referencia", () => {
 
   it("solo los niveles de bucles permiten «repetir»", () => {
     for (const c of CHALLENGES) {
-      expect(c.allowed.includes("repeat")).toBe(c.level >= 2 && c.level !== 4 && c.level !== 7);
+      const p = c.level > 10 ? c.level - 10 : c.level;
+      expect(c.allowed.includes("repeat")).toBe(p >= 2 && p !== 4 && p !== 7);
     }
   });
 });
 
 describe("condicionales", () => {
   it("«si» solo está permitido desde el nivel 3", () => {
-    for (const c of CHALLENGES) expect(c.allowed.includes("if")).toBe(c.level === 3 || c.level >= 7);
+    for (const c of CHALLENGES) {
+      const p = c.level > 10 ? c.level - 10 : c.level;
+      expect(c.allowed.includes("if")).toBe(p === 3 || p >= 7);
+    }
   });
 
   it("ejecuta el cuerpo solo si se cumple la condición", () => {

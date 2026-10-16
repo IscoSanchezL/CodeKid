@@ -2,7 +2,7 @@
 // valide con exactamente las mismas reglas. Deno exige la extensión .ts en los imports.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-const FILES = ["types", "program", "interpreter", "levels"];
+const FILES = ["types", "program", "interpreter", "dsl", "advanced", "levels"];
 const OUT = "supabase/functions/submit-result/engine";
 mkdirSync(OUT, { recursive: true });
 for (const f of FILES) {

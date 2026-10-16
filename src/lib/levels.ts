@@ -19,3 +19,22 @@ export const LEVELS: Level[] = [
   { id: 9, slug: "codigo-real", title: "JavaScript y Python", summary: "Retos con tests automáticos.", free: false },
   { id: 10, slug: "proyectos", title: "Proyectos finales", summary: "Crea y publica tu juego.", free: false },
 ];
+
+/** Fase 2: el nivel avanzado del planeta N es el nivel N + 10. */
+export const ADV_OFFSET = 10;
+export const isAdvanced = (id: number) => id > ADV_OFFSET;
+/** Planeta de origen de un nivel (el planeta mismo, o el planeta al que pertenece el modo avanzado). */
+export const planetOf = (id: number) => (isAdvanced(id) ? id - ADV_OFFSET : id);
+
+/** Modo avanzado de cada planeta (niveles 11–20): mismos temas, retos más difíciles. */
+export const ADV_LEVELS: Level[] = LEVELS.map((l) => ({
+  id: l.id + ADV_OFFSET,
+  slug: `${l.slug}-avanzado`,
+  title: `${l.title} · Avanzado`,
+  summary: `Retos más difíciles de «${l.title}».`,
+  free: false,
+}));
+
+/** Datos de un nivel, básico o avanzado. */
+export const levelMeta = (id: number): Level | undefined =>
+  LEVELS.find((l) => l.id === id) ?? ADV_LEVELS.find((l) => l.id === id);

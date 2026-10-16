@@ -107,12 +107,16 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
     const isStudent = profile?.role === "student";
 
-    // Un planeta solo se juega si el alumno reunió las estrellas del anterior (así no se salta por la dirección).
-    if (isStudent && level.level > 1) {
-      const need = Math.min(PASS_STARS, challengesOf(level.level - 1).length * 3);
-      const { data: rows } = await admin.from("progress").select("stars").eq("student_id", auth.user.id).eq("level", level.level - 1);
+    // Un planeta solo se juega si el alumno reunió las estrellas del anterior; el modo avanzado (niveles 11–20),
+    // las de su propio planeta (así no se salta por la dirección).
+    const advanced = level.level > 10;
+    const pre = advanced ? level.level - 10 : level.level - 1;
+    if (isStudent && pre >= 1) {
+      const need = Math.min(PASS_STARS, challengesOf(pre).length * 3);
+      const { data: rows } = await admin.from("progress").select("stars").eq("student_id", auth.user.id).eq("level", pre);
       const have = (rows ?? []).reduce((n: number, r: { stars: number | null }) => n + (r.stars ?? 0), 0);
-      if (have < need) return json({ error: `Este planeta todavía está cerrado: saca ${need} estrellas en el anterior.` }, 403);
+      if (have < need)
+        return json({ error: advanced ? `El modo avanzado todavía está cerrado: saca ${need} estrellas en el planeta.` : `Este planeta todavía está cerrado: saca ${need} estrellas en el anterior.` }, 403);
     }
 
     const result = run(level, program);

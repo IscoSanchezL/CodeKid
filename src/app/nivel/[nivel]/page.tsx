@@ -10,7 +10,8 @@ import { StarsBadge } from "@/components/game/stars-badge";
 import { WORLDS } from "@/components/map/island";
 import { LevelGate } from "@/components/map/level-gate";
 import { challengesOf, PLAYABLE_LEVELS } from "@/engine/levels";
-import { LEVELS } from "@/lib/levels";
+import { PlanetChoice } from "@/components/map/planet-choice";
+import { isAdvanced, levelMeta, planetOf } from "@/lib/levels";
 
 type Params = { nivel: string };
 
@@ -19,16 +20,17 @@ export function generateStaticParams(): Params[] {
 }
 
 export function generateMetadata({ params }: { params: Params }): Metadata {
-  const meta = LEVELS.find((l) => l.id === Number(params.nivel));
+  const meta = levelMeta(Number(params.nivel));
   return { title: meta ? `Nivel ${meta.id}: ${meta.title}` : "Nivel" };
 }
 
 export default function NivelPage({ params }: { params: Params }) {
   const n = Number(params.nivel);
-  const meta = LEVELS.find((l) => l.id === n);
+  const meta = levelMeta(n);
   const list = challengesOf(n);
   if (!meta || list.length === 0) notFound();
-  const world = WORLDS[(n - 1) % WORLDS.length];
+  const world = WORLDS[(planetOf(n) - 1) % WORLDS.length];
+  const adv = isAdvanced(n);
 
   return (
     <SceneShell>
@@ -48,11 +50,13 @@ export default function NivelPage({ params }: { params: Params }) {
         <LevelGate level={n}>
           <p className="text-sm font-bold uppercase tracking-wide text-fg/70">
             Mundo {world.name}
+            {adv ? " · ⚡ Modo avanzado" : ""}
           </p>
           <h1 className="text-3xl font-extrabold">
-            Nivel {meta.id}: {meta.title}
+            {adv ? `Planeta ${planetOf(n)}` : `Nivel ${meta.id}`}: {meta.title}
           </h1>
           <p className="mt-1 text-fg/80">{meta.summary}</p>
+          <PlanetChoice level={n} />
           <ol className="rise-stagger mt-8 grid gap-4 sm:grid-cols-2">
             {list.map((c) => (
               <li key={c.challenge}>

@@ -5,7 +5,9 @@ import { LevelStars } from "./level-stars";
 import { WORLDS } from "./island";
 import { Planet } from "./planets";
 import { useMapState } from "./use-current-level";
-import { PASS_STARS } from "@/lib/unlock";
+import { PASS_STARS, maxStars } from "@/lib/unlock";
+import { ADV_OFFSET } from "@/lib/levels";
+import { PLAYABLE_LEVELS } from "@/engine/levels";
 
 type Props = {
   level: number;
@@ -21,7 +23,7 @@ const RINGED = new Set([3, 6, 9]);
 
 /** Planeta de un nivel: esfera con atmósfera, bandas, cráteres y su insignia. Se coloca en % sobre el mapa (viewBox 1000×700). */
 export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
-  const { current: here, done, unlocked, ready } = useMapState();
+  const { current: here, done, unlocked, ready, stars } = useMapState();
   // «exists»: el nivel tiene retos. «open»: además el jugador ya lo desbloqueó (11 estrellas en el planeta anterior).
   const open =
     exists && (unlocked.has(level) || !ready) && (ready || level === 1);
@@ -190,6 +192,11 @@ export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
     </>
   );
 
+  const advLevel = level + ADV_OFFSET;
+  const advStars = stars(advLevel);
+  const advDone = advStars >= Math.min(PASS_STARS, maxStars(advLevel));
+  const showAdv = complete && PLAYABLE_LEVELS.includes(advLevel);
+
   return (
     <li
       className="absolute"
@@ -200,6 +207,16 @@ export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
         transform: "translate(-50%,-47%)",
       }}
     >
+      {showAdv && (
+        <Link
+          href={`/nivel/${advLevel}`}
+          aria-label={`Modo avanzado de ${title}: ${advStars} estrellas`}
+          title={`⚡ Modo avanzado · ${advStars}★`}
+          className={`btn-gloss absolute -right-[2%] top-[2%] z-10 grid h-[clamp(26px,4.2cqw,44px)] w-[clamp(26px,4.2cqw,44px)] place-items-center rounded-full border-2 text-[clamp(12px,2cqw,22px)] shadow-[0_0_16px_rgba(255,120,240,0.8)] ${advDone ? "border-yellow-200 bg-gradient-to-b from-yellow-300 to-orange-400" : "border-fuchsia-200 bg-gradient-to-b from-fuchsia-500 to-indigo-600"}`}
+        >
+          <span aria-hidden>{advDone ? "🏅" : "⚡"}</span>
+        </Link>
+      )}
       {open ? (
         <Link
           href={`/nivel/${level}`}

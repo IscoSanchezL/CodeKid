@@ -1,40 +1,8 @@
-import type { AtomKind, Block, Level, Turn } from "./types";
+import type { Level } from "./types";
+import { ADVANCED } from "./advanced";
+import { ALL, FUNCS, LISTS, LOGIC, LOOP, SEQ, VARS, WHILES, addv, call, def, each, follow, ifC, left, list, move, movev, repeat, right, setv, turn, walk, whileC } from "./dsl";
 
-// Atajos para escribir las soluciones de referencia
-let n = 0;
-const id = () => `s${(n += 1)}`;
-const move = (): Block => ({ id: id(), type: "move" });
-const left = (): Block => ({ id: id(), type: "left" });
-const right = (): Block => ({ id: id(), type: "right" });
-const repeat = (times: number, ...body: Block[]): Block => ({ id: id(), type: "repeat", times, body });
-const ifWall = (...body: Block[]): Block => ({ id: id(), type: "if", cond: "wall", body });
-const ifFree = (...body: Block[]): Block => ({ id: id(), type: "if", cond: "free", body });
-const def = (name: "A" | "B", ...body: Block[]): Block => ({ id: id(), type: "def", name, body });
-const call = (name: "A" | "B"): Block => ({ id: id(), type: "call", name });
-const setv = (value: number): Block => ({ id: id(), type: "setvar", value });
-const addv = (op: "+" | "-" | "*", value: number): Block => ({ id: id(), type: "addvar", op, value });
-const movev = (): Block => ({ id: id(), type: "movevar" });
-const list = (...items: Turn[]): Block => ({ id: id(), type: "list", items });
-const each = (...body: Block[]): Block => ({ id: id(), type: "foreach", body });
-const turn = (): Block => ({ id: id(), type: "turnitem" });
-const whileC = (kind: AtomKind, not: boolean, ...body: Block[]): Block => ({ id: id(), type: "while", cond: { a: { kind, not } }, body });
-const ifC = (kind: AtomKind, not: boolean, ...body: Block[]): Block => ({ id: id(), type: "if", cond: { a: { kind, not } }, body });
-/** Patrón de «camina y gira al chocar»: si hay camino, avanza; si hay pared, gira. */
-const walk = (turn: () => Block): Block[] => [ifFree(move()), ifWall(turn())];
-
-const SEQ: Level["allowed"] = ["move", "left", "right"];
-const LOOP: Level["allowed"] = ["move", "left", "right", "repeat"];
-const LOGIC: Level["allowed"] = ["move", "left", "right", "repeat", "if"];
-const FUNCS: Level["allowed"] = ["move", "left", "right", "def", "call"];
-const VARS: Level["allowed"] = ["move", "left", "right", "repeat", "setvar", "addvar", "movevar"];
-const LISTS: Level["allowed"] = ["move", "left", "right", "repeat", "list", "foreach", "turnitem"];
-const WHILES: Level["allowed"] = ["move", "left", "right", "if", "while"];
-/** Retos de código: el programa se escribe en texto y puede usar cualquier bloque. */
-const ALL: Level["allowed"] = ["move", "left", "right", "repeat", "if", "while", "def", "call", "setvar", "addvar", "movevar", "list", "foreach", "turnitem"];
-/** Recorre un camino de un solo carril: avanza mientras haya camino y gira; para cuando la meta está delante. */
-const follow = (...turns: Block[]): Block => whileC("goal", true, whileC("free", false, move()), ...turns);
-
-export const CHALLENGES: Level[] = [
+const BASE: Level[] = [
   // ── Nivel 1 · Secuencias ───────────────────────────────────────────────
   {
     level: 1, challenge: 1, title: "Primer paso", par: 2, startDir: 1, allowed: SEQ,
@@ -388,5 +356,7 @@ export function getChallenge(level: number, challenge: number): Level | undefine
 export function challengesOf(level: number): Level[] {
   return CHALLENGES.filter((c) => c.level === level);
 }
+
+export const CHALLENGES: Level[] = [...BASE, ...ADVANCED];
 
 export const PLAYABLE_LEVELS = [...new Set(CHALLENGES.map((c) => c.level))];
