@@ -6,30 +6,40 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   callAdmin,
-  ROLE_LABEL,
   type AdminClass,
   type AdminUser,
   type AuditEntry,
   type Overview,
 } from "@/lib/admin-api";
+import { TX, translateText, useLang, useT, type Lang, type TFn } from "@/i18n";
 
 type Tab = "overview" | "users" | "classes" | "audit";
 const TABS: [Tab, string][] = [
-  ["overview", "📈 Resumen"],
-  ["users", "👥 Cuentas"],
-  ["classes", "🏫 Clases"],
-  ["audit", "🧾 Registro"],
+  ["overview", "a.tabOverview"],
+  ["users", "a.tabUsers"],
+  ["classes", "a.tabClasses"],
+  ["audit", "a.tabAudit"],
 ];
 
-const fmt = (iso: string | null) =>
+const fmt = (iso: string | null, lang: Lang, t: TFn) =>
   iso
-    ? new Date(iso).toLocaleString("es", {
+    ? new Date(iso).toLocaleString(lang === "en" ? "en-GB" : "es", {
         day: "2-digit",
         month: "short",
         hour: "2-digit",
         minute: "2-digit",
       })
-    : "Nunca";
+    : t("a.never");
+
+/** Detalle de una entrada del registro (se guarda en español en la base de datos; aquí solo se muestra). */
+function auditDetail(detail: string, lang: Lang, t: TFn): string {
+  let m: RegExpExecArray | null;
+  if ((m = /^rol (\w+)$/.exec(detail))) return t("audit.dRole", { role: t(`role.${m[1]}`) });
+  if ((m = /^(\w+) → (\w+)$/.exec(detail))) return `${t(`role.${m[1]}`)} → ${t(`role.${m[2]}`)}`;
+  if ((m = /^a (.+)$/.exec(detail))) return t("audit.dTo", { name: m[1] });
+  if ((m = /^(\d+) alumno\(s\) eliminados$/.exec(detail))) return t("audit.dRemoved", { n: m[1] });
+  return translateText(lang, detail);
+}
 
 /** Panel del super administrador: ve y controla todas las cuentas, clases y la actividad de la plataforma. */
 export function AdminPanel({
@@ -39,6 +49,7 @@ export function AdminPanel({
   myId: string;
   onOpenClass: (classroomId: string) => void;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<Tab>("overview");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,10 +73,10 @@ export function AdminPanel({
     <div className="flex flex-col gap-4">
       <div
         role="tablist"
-        aria-label="Administración"
+        aria-label={t("a.aria")}
         className="flex flex-wrap gap-2"
       >
-        {TABS.map(([id, label]) => (
+        {TABS.map(([id, labelKey]) => (
           <button
             key={id}
             type="button"
@@ -74,7 +85,7 @@ export function AdminPanel({
             onClick={() => setTab(id)}
             className={`rounded-xl px-4 py-2 font-bold ${tab === id ? "bg-brand text-brand-fg" : "bg-surface-2 hover:bg-border"}`}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -83,7 +94,7 @@ export function AdminPanel({
           role="alert"
           className="rounded-xl bg-danger/10 p-3 text-sm font-medium text-danger"
         >
-          {error}
+          <TX text={error} />
         </p>
       )}
       {notice && (
@@ -91,7 +102,7 @@ export function AdminPanel({
           role="status"
           className="rounded-xl bg-success/10 p-3 text-sm font-medium text-success"
         >
-          {notice}
+          <TX text={notice} />
         </p>
       )}
       {tab === "overview" && <OverviewTab run={run} />}
@@ -109,13 +120,14 @@ export function AdminPanel({
 type Run = <T>(fn: () => Promise<T>) => Promise<T | null>;
 
 function OverviewTab({ run }: { run: Run }) {
+  const t = useT();
   const [o, setO] = useState<Overview | null>(null);
   useEffect(() => {
     void run(() => callAdmin<Overview>({ action: "overview" })).then(
       (r) => r && setO(r),
     );
   }, [run]);
-  if (!o) return <Card className="text-muted">Cargando…</Card>;
+  if (!o) return <Card className="text-muted">{t("a.loading")}</Card>;
   const stat = (label: string, value: number | string, tone = "") => (
     <div className="rounded-xl bg-surface-2 p-3">
       <p className="text-xs font-bold uppercase tracking-wide text-muted">
@@ -126,16 +138,16 @@ function OverviewTab({ run }: { run: Run }) {
   );
   return (
     <Card>
-      <h2 className="font-bold">Toda la plataforma</h2>
+      <h2 className="font-bold">{t("a.platform")}</h2>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {stat("Estudiantes", o.students, "text-brand")}
-        {stat("Docentes", o.teachers)}
-        {stat("Clases", o.classes)}
-        {stat("Activos esta semana", o.activeWeek)}
-        {stat("Retos superados", o.completed)}
-        {stat("Estrellas ganadas", o.totalStars, "text-warn")}
-        {stat("Intentos fallidos", o.totalFails)}
-        {stat("Tutores / admins", `${o.guardians} / ${o.admins}`)}
+        {stat(t("a.students"), o.students, "text-brand")}
+        {stat(t("a.teachers"), o.teachers)}
+        {stat(t("a.classes"), o.classes)}
+        {stat(t("a.activeWeek"), o.activeWeek)}
+        {stat(t("a.completed"), o.completed)}
+        {stat(t("a.starsWon"), o.totalStars, "text-warn")}
+        {stat(t("a.fails"), o.totalFails)}
+        {stat(t("a.guardiansAdmins"), `${o.guardians} / ${o.admins}`)}
       </div>
     </Card>
   );
@@ -150,6 +162,8 @@ function UsersTab({
   run: Run;
   setNotice: (s: string | null) => void;
 }) {
+  const t = useT();
+  const lang = useLang();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [secret, setSecret] = useState<{
     email: string;
@@ -206,13 +220,12 @@ function UsersTab({
     <div className="flex flex-col gap-4">
       {secret && (
         <Card className="border-2 border-dashed border-warn">
-          <p className="font-bold">Contraseña temporal de {secret.email}</p>
+          <p className="font-bold">{t("a.tempPass", { email: secret.email })}</p>
           <p className="mt-1 font-mono text-2xl font-extrabold tracking-wider">
             {secret.password}
           </p>
           <p className="mt-1 text-sm text-muted">
-            Entrégala en persona. Esa persona puede cambiarla desde su panel
-            («Cambiar mi contraseña»).
+            {t("a.tempHelp")}
           </p>
           <Button
             variant="outline"
@@ -220,53 +233,53 @@ function UsersTab({
             className="mt-2"
             onClick={() => setSecret(null)}
           >
-            Ya la anoté
+            {t("a.noted")}
           </Button>
         </Card>
       )}
 
       <Card>
-        <h2 className="font-bold">Crear una cuenta</h2>
+        <h2 className="font-bold">{t("a.createAccount")}</h2>
         <form
           onSubmit={create}
           className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
         >
-          <Input label="Correo" name="email" type="email" required />
+          <Input label={t("a.email")} name="email" type="email" required />
           <Input
-            label="Nombre"
+            label={t("a.name")}
             name="name"
             required
             minLength={2}
             maxLength={40}
           />
           <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Rol
+            {t("a.role")}
             <select
               name="role"
               defaultValue="teacher"
               className="field h-11 rounded-xl border border-border bg-surface px-3 text-base"
             >
-              <option value="teacher">Docente</option>
-              <option value="guardian">Tutor</option>
-              <option value="admin">Super admin</option>
+              <option value="teacher">{t("role.teacher")}</option>
+              <option value="guardian">{t("role.guardian")}</option>
+              <option value="admin">{t("role.admin")}</option>
             </select>
           </label>
           <Button type="submit" disabled={busy}>
-            Crear
+            {t("a.create")}
           </Button>
         </form>
       </Card>
 
       <Card className="overflow-x-auto">
-        <h2 className="mb-3 font-bold">Cuentas ({users.length})</h2>
+        <h2 className="mb-3 font-bold">{t("a.accountsN", { n: users.length })}</h2>
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-muted">
-              <th className="p-2">Persona</th>
-              <th className="p-2">Rol</th>
-              <th className="p-2">Clases / alumnos</th>
-              <th className="p-2">Último acceso</th>
-              <th className="p-2 text-right">Acciones</th>
+              <th className="p-2">{t("a.person")}</th>
+              <th className="p-2">{t("a.role")}</th>
+              <th className="p-2">{t("a.classesStudents")}</th>
+              <th className="p-2">{t("a.lastAccess")}</th>
+              <th className="p-2 text-right">{t("a.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -277,10 +290,10 @@ function UsersTab({
                   <td className="p-2">
                     <p className="font-semibold">
                       {u.name}{" "}
-                      {me && <span className="text-xs text-muted">(tú)</span>}
+                      {me && <span className="text-xs text-muted">{t("a.you")}</span>}
                       {u.banned && (
                         <span className="ml-1 rounded bg-danger/15 px-1.5 text-xs font-bold text-danger">
-                          suspendida
+                          {t("a.suspended")}
                         </span>
                       )}
                     </p>
@@ -288,13 +301,13 @@ function UsersTab({
                   </td>
                   <td className="p-2">
                     <select
-                      aria-label={`Rol de ${u.name}`}
+                      aria-label={t("a.roleOf", { name: u.name })}
                       value={u.role}
                       disabled={me || busy}
                       onChange={(e) => {
                         if (
                           window.confirm(
-                            `¿Cambiar a ${u.name} a «${ROLE_LABEL[e.target.value as AdminUser["role"]]}»?`,
+                            t("a.confirmRole", { name: u.name, role: t(`role.${e.target.value}`) }),
                           )
                         )
                           void act(
@@ -308,16 +321,16 @@ function UsersTab({
                       }}
                       className="field rounded-lg border border-border bg-surface px-2 py-1"
                     >
-                      <option value="teacher">Docente</option>
-                      <option value="guardian">Tutor</option>
-                      <option value="admin">Super admin</option>
-                      <option value="student">Estudiante</option>
+                      <option value="teacher">{t("role.teacher")}</option>
+                      <option value="guardian">{t("role.guardian")}</option>
+                      <option value="admin">{t("role.admin")}</option>
+                      <option value="student">{t("role.student")}</option>
                     </select>
                   </td>
                   <td className="p-2">
                     {u.classes} / {u.students}
                   </td>
-                  <td className="p-2 text-muted">{fmt(u.lastSignIn)}</td>
+                  <td className="p-2 text-muted">{fmt(u.lastSignIn, lang, t)}</td>
                   <td className="p-2">
                     <div className="flex flex-wrap justify-end gap-1">
                       <Button
@@ -327,7 +340,7 @@ function UsersTab({
                         onClick={() => {
                           if (
                             window.confirm(
-                              `¿Crear una contraseña temporal nueva para ${u.name}? La actual dejará de servir.`,
+                              t("a.confirmReset", { name: u.name }),
                             )
                           )
                             void act(
@@ -341,7 +354,7 @@ function UsersTab({
                             );
                         }}
                       >
-                        Clave nueva
+                        {t("a.newPass")}
                       </Button>
                       {!me && (
                         <>
@@ -362,7 +375,7 @@ function UsersTab({
                               )
                             }
                           >
-                            {u.banned ? "Reactivar" : "Suspender"}
+                            {u.banned ? t("a.reactivate") : t("a.suspend")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -372,7 +385,7 @@ function UsersTab({
                             onClick={() => {
                               if (
                                 window.confirm(
-                                  `¿Eliminar la cuenta de ${u.name}? No se puede deshacer.`,
+                                  t("a.confirmDelete", { name: u.name }),
                                 )
                               )
                                 void act(
@@ -381,7 +394,7 @@ function UsersTab({
                                 );
                             }}
                           >
-                            Eliminar
+                            {t("a.delete")}
                           </Button>
                         </>
                       )}
@@ -406,6 +419,7 @@ function ClassesTab({
   setNotice: (s: string | null) => void;
   onOpenClass: (id: string) => void;
 }) {
+  const t = useT();
   const [classes, setClasses] = useState<AdminClass[]>([]);
   const [teachers, setTeachers] = useState<
     { id: string; name: string; email: string }[]
@@ -441,17 +455,17 @@ function ClassesTab({
 
   return (
     <Card className="overflow-x-auto">
-      <h2 className="mb-3 font-bold">Todas las clases ({classes.length})</h2>
+      <h2 className="mb-3 font-bold">{t("a.allClasses", { n: classes.length })}</h2>
       {classes.length === 0 ? (
-        <p className="text-sm text-muted">Todavía no hay clases.</p>
+        <p className="text-sm text-muted">{t("a.noClasses")}</p>
       ) : (
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-muted">
-              <th className="p-2">Clase</th>
-              <th className="p-2">Código / clave</th>
-              <th className="p-2">Docente</th>
-              <th className="p-2">Alumnos</th>
+              <th className="p-2">{t("a.class")}</th>
+              <th className="p-2">{t("a.codeKey")}</th>
+              <th className="p-2">{t("a.teacher")}</th>
+              <th className="p-2">{t("a.studentsCol")}</th>
               <th className="p-2 text-right">Acciones</th>
             </tr>
           </thead>
@@ -464,29 +478,29 @@ function ClassesTab({
                 </td>
                 <td className="p-2">
                   <select
-                    aria-label={`Docente de ${c.name}`}
+                    aria-label={t("a.teacherOf", { name: c.name })}
                     value={c.teacherId}
                     disabled={busy}
                     onChange={(e) => {
-                      const t = teachers.find((x) => x.id === e.target.value);
+                      const tch = teachers.find((x) => x.id === e.target.value);
                       if (
-                        t &&
-                        window.confirm(`¿Pasar «${c.name}» a ${t.name}?`)
+                        tch &&
+                        window.confirm(t("a.confirmMove", { cls: c.name, name: tch.name }))
                       )
                         void act(
                           {
                             action: "reassign-class",
                             classroomId: c.id,
-                            teacherId: t.id,
+                            teacherId: tch.id,
                           },
                           "Clase pasada.",
                         );
                     }}
                     className="field max-w-[14rem] rounded-lg border border-border bg-surface px-2 py-1"
                   >
-                    {teachers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.email})
+                    {teachers.map((tch) => (
+                      <option key={tch.id} value={tch.id}>
+                        {tch.name} ({tch.email})
                       </option>
                     ))}
                   </select>
@@ -499,7 +513,7 @@ function ClassesTab({
                       size="sm"
                       onClick={() => onOpenClass(c.id)}
                     >
-                      Abrir
+                      {t("a.open")}
                     </Button>
                     <Button
                       variant="ghost"
@@ -509,7 +523,7 @@ function ClassesTab({
                       onClick={() => {
                         if (
                           window.confirm(
-                            `¿Eliminar la clase «${c.name}» y sus ${c.students} alumno(s) con todo su progreso? No se puede deshacer.`,
+                            t("a.confirmDeleteClass", { name: c.name, n: c.students }),
                           )
                         )
                           void act(
@@ -522,7 +536,7 @@ function ClassesTab({
                           );
                       }}
                     >
-                      Eliminar
+                      {t("a.delete")}
                     </Button>
                   </div>
                 </td>
@@ -536,6 +550,8 @@ function ClassesTab({
 }
 
 function AuditTab({ run }: { run: Run }) {
+  const t = useT();
+  const lang = useLang();
   const [entries, setEntries] = useState<AuditEntry[] | null>(null);
   useEffect(() => {
     void run(() =>
@@ -544,22 +560,22 @@ function AuditTab({ run }: { run: Run }) {
   }, [run]);
   return (
     <Card>
-      <h2 className="mb-3 font-bold">Registro de acciones</h2>
+      <h2 className="mb-3 font-bold">{t("a.auditTitle")}</h2>
       {entries === null ? (
-        <p className="text-sm text-muted">Cargando…</p>
+        <p className="text-sm text-muted">{t("a.loading")}</p>
       ) : entries.length === 0 ? (
-        <p className="text-sm text-muted">Aún no hay acciones registradas.</p>
+        <p className="text-sm text-muted">{t("a.noAudit")}</p>
       ) : (
         <ul className="divide-y divide-border text-sm">
           {entries.map((e) => (
             <li key={e.id} className="flex flex-wrap gap-x-3 py-2">
               <span className="w-32 shrink-0 text-muted">
-                {fmt(e.created_at)}
+                {fmt(e.created_at, lang, t)}
               </span>
               <span className="font-semibold">{e.actor_name}</span>
               <span>
-                {e.action}: <strong>{e.target}</strong>
-                {e.detail && <span className="text-muted"> · {e.detail}</span>}
+                {t(`audit.${e.action}`) === `audit.${e.action}` ? e.action : t(`audit.${e.action}`)}: <strong>{e.target}</strong>
+                {e.detail && <span className="text-muted"> · {auditDetail(e.detail, lang, t)}</span>}
               </span>
             </li>
           ))}

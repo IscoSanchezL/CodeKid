@@ -1,9 +1,11 @@
+"use client";
+
 import { smoothPath, type Pt } from "@/components/map/path";
 import { WORLDS } from "@/components/map/island";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
 import { LEVELS } from "@/lib/levels";
+import { useT } from "@/i18n";
 
-const SHORT = ["Secuencias", "Bucles", "Condicionales", "Funciones", "Variables", "Listas", "Lógica", "Bloques → texto", "JS y Python", "Proyectos"];
 const ICONS = ["🚩", "🔁", "🔀", "⚙️", "➕", "📋", "🧠", "💻", "🐍", "🏆"];
 
 const POINTS: Pt[] = LEVELS.map((_, i) => [70 + i * 95.5, 175 + Math.sin(i * 1.15) * 78] as const);
@@ -11,9 +13,10 @@ const { d: PATH } = smoothPath(POINTS);
 
 /** Las 10 etapas como planetas unidos por una ruta de luz. Los dos primeros ya se pueden jugar. */
 export function Constellation() {
+  const t = useT();
   return (
     <div className="overflow-x-auto pb-2">
-      <svg viewBox="0 0 1000 380" className="mx-auto min-w-[760px] max-w-5xl" role="img" aria-label="Las 10 etapas de aprendizaje de CodeKid, de secuencias a proyectos finales">
+      <svg viewBox="0 0 1000 380" className="mx-auto min-w-[760px] max-w-5xl" role="img" aria-label={t("land.constAria")}>
         <defs>
           <filter id="cs-glow" x="-60%" y="-60%" width="220%" height="220%">
             <feGaussianBlur stdDeviation="7" />
@@ -53,11 +56,11 @@ export function Constellation() {
                 {l.id}
               </text>
               <text x={x} y={y + r + 30} textAnchor="middle" fontSize="14" fontWeight="700" fill="#eef2ff" fontFamily="inherit">
-                {SHORT[i]}
+                {t(`lv.${l.id}.short`)}
               </text>
               {!open && (
                 <text x={x} y={y + r + 48} textAnchor="middle" fontSize="11" fill="#9fb0e0" fontFamily="inherit">
-                  próximamente
+                  {t("lv.comingSoon")}
                 </text>
               )}
             </g>

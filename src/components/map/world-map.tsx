@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { UserBar } from "@/components/brand/user-bar";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
@@ -7,6 +9,7 @@ import { MapStateProvider } from "./use-current-level";
 import { MapRocket } from "./map-rocket";
 import { rng, smoothPath, type Pt } from "./path";
 import { StarsTotal } from "./stars-total";
+import { levelTitle, useT } from "@/i18n";
 
 /** Posición de cada planeta en el mapa (viewBox 1000×700): una ruta espacial que sube hacia la derecha. */
 export const NODES: Pt[] = [
@@ -40,20 +43,21 @@ const STARS: Star[] = (() => {
 
 /** Mapa espacial del mundo CodeKid: galaxia, planetas por nivel y un cohete que viaja de uno a otro. */
 export function WorldMap() {
+  const t = useT();
   return (
     <div>
       <div className="flex items-start justify-between gap-2 pb-3">
         <Link
           href="/"
-          aria-label="Volver al inicio"
+          aria-label={t("map.home")}
           className="btn-gloss grid h-11 w-11 place-items-center rounded-full border border-cyan-300/50 bg-[#0b0830]/70 text-xl font-black text-cyan-200 shadow-[0_0_18px_-2px_rgba(94,227,255,0.6)] backdrop-blur"
         >
           ←
         </Link>
         <div className="hidden rounded-full border border-cyan-300/30 bg-[#0b0830]/60 px-6 py-1.5 text-center font-extrabold leading-tight text-white shadow-[0_0_24px_-6px_rgba(94,227,255,0.6)] backdrop-blur md:block">
-          Galaxia CodeKid
+          {t("map.galaxy")}
           <span className="block font-mono text-[11px] font-semibold uppercase tracking-[0.25em] text-cyan-200">
-            Elige tu planeta
+            {t("map.choose")}
           </span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2 rounded-3xl border border-white/15 bg-[#0b0830]/60 px-3 py-1.5 text-sm shadow-lg backdrop-blur sm:gap-3">
@@ -61,7 +65,7 @@ export function WorldMap() {
             href="/tienda"
             className="btn-gloss rounded-full bg-gradient-to-b from-[#ffd75e] to-[#ffb800] px-3 py-1 font-extrabold text-[#0b1440] shadow-[0_2px_0_#b98600]"
           >
-            🛍️ Tienda
+            {t("map.shop")}
           </Link>
           <StarsTotal />
           <UserBar />
@@ -263,7 +267,7 @@ export function WorldMap() {
                 <MapNode
                   key={l.id}
                   level={l.id}
-                  title={l.title}
+                  title={levelTitle(t, l.id, l.title)}
                   icon={ICONS[i]}
                   x={NODES[i][0]}
                   y={NODES[i][1]}

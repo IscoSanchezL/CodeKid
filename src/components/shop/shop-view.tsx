@@ -11,7 +11,6 @@ import {
   CATALOG,
   itemById,
   itemsOf,
-  RARITY_LABEL,
   SLOT_KEY,
   SLOTS,
   type ShopItem,
@@ -26,6 +25,7 @@ import {
   type Deal,
 } from "@/lib/wallet";
 import { useWallet } from "./use-wallet";
+import { translateText, useLang, useT } from "@/i18n";
 
 const RARITY_STYLE: Record<ShopItem["rarity"], string> = {
   comun: "bg-surface-2 text-fg",
@@ -53,6 +53,8 @@ function look(
 }
 
 export function ShopView() {
+  const t = useT();
+  const lang = useLang();
   const { wallet, ready } = useWallet();
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [deal, setDeal] = useState<Deal | null>(null);
@@ -96,7 +98,7 @@ export function ShopView() {
   const selected = picked ? (itemById(picked) ?? null) : null;
   const list = itemsOf(slot).filter((i) => !onlyOwned || have(i));
 
-  if (!ready) return <p className="py-20 text-center text-muted">Cargando…</p>;
+  if (!ready) return <p className="py-20 text-center text-muted">{t("shop.loading")}</p>;
   if (!wallet || wallet.role !== "student") {
     return (
       <Card className="mx-auto max-w-md text-center">
@@ -104,17 +106,16 @@ export function ShopView() {
           🛍️
         </p>
         <h1 className="mt-2 text-2xl font-extrabold">
-          La tienda es para los alumnos
+          {t("shop.studentsOnly")}
         </h1>
         <p className="mt-2 text-muted">
-          Entra con el código de tu clase para ganar monedas y vestir a tu
-          personaje.
+          {t("shop.studentsOnlyText")}
         </p>
         <Button
           className="mt-4"
           onClick={() => (window.location.href = "/clase")}
         >
-          Entrar con mi clase
+          {t("shop.enterClass")}
         </Button>
       </Card>
     );
@@ -128,11 +129,11 @@ export function ShopView() {
     try {
       await buyItem(item.id);
       await equipItem(item.slot, item.id); // al comprar, se lo pone
-      setMessage({ kind: "ok", text: `¡Es tuyo! Ya llevas «${item.name}».` });
+      setMessage({ kind: "ok", text: t("shop.bought", { name: t(`item.${item.id}`) }) });
     } catch (e) {
       setMessage({
         kind: "error",
-        text: e instanceof Error ? e.message : "No se pudo comprar",
+        text: translateText(lang, e instanceof Error ? e.message : t("shop.errBuy")),
       });
     } finally {
       setBusy(false);
@@ -150,7 +151,7 @@ export function ShopView() {
     } catch (e) {
       setMessage({
         kind: "error",
-        text: e instanceof Error ? e.message : "No se pudo cambiar",
+        text: translateText(lang, e instanceof Error ? e.message : t("shop.errEquip")),
       });
     } finally {
       setBusy(false);
@@ -180,17 +181,17 @@ export function ShopView() {
             className="scene-meadow absolute inset-x-0 bottom-0 h-8"
           />
           <p className="relative mt-6 pb-8 text-sm font-bold">
-            {selected ? `Probando: ${selected.name}` : "Así te ven tus amigos"}
+            {selected ? t("shop.trying", { name: t(`item.${selected.id}`) }) : t("shop.friends")}
           </p>
         </Card>
 
         {selected ? (
           <Card className="text-center">
-            <p className="text-lg font-extrabold">{selected.name}</p>
+            <p className="text-lg font-extrabold">{t(`item.${selected.id}`)}</p>
             <span
               className={`mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-bold ${RARITY_STYLE[selected.rarity]}`}
             >
-              {RARITY_LABEL[selected.rarity]}
+              {t(`rarity.${selected.rarity}`)}
             </span>
             {have(selected) ? (
               <Button
@@ -201,9 +202,9 @@ export function ShopView() {
               >
                 {isEquipped(selected)
                   ? selected.slot === "color"
-                    ? "Ya lo llevas"
-                    : "Quitar"
-                  : "Ponérmelo"}
+                    ? t("shop.alreadyWearing")
+                    : t("shop.takeOff")
+                  : t("shop.putOn")}
               </Button>
             ) : (
               <>
@@ -213,13 +214,13 @@ export function ShopView() {
                   disabled={busy || missing > 0}
                   onClick={() => buy(selected)}
                 >
-                  Comprar por 🪙 {priceOf(selected)}
+                  {t("shop.buy", { price: priceOf(selected) })}
                 </Button>
                 {missing > 0 && (
                   <p className="mt-2 text-sm text-muted">
-                    Te faltan <strong>{missing}</strong> monedas.{" "}
+                    {t("shop.missing1")}<strong>{missing}</strong>{t("shop.missing2")}
                     <Link href="/mapa" className="font-semibold text-brand">
-                      Juega para ganarlas
+                      {t("shop.play")}
                     </Link>
                   </p>
                 )}
@@ -228,17 +229,17 @@ export function ShopView() {
           </Card>
         ) : (
           <Card className="text-center text-sm text-muted">
-            Toca un artículo para probártelo antes de comprarlo.
+            {t("shop.tapItem")}
           </Card>
         )}
       </aside>
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-extrabold">Tienda</h1>
+          <h1 className="text-3xl font-extrabold">{t("shop.title")}</h1>
           <p
             className="rounded-full bg-warn/20 px-4 py-1.5 text-lg font-extrabold"
-            aria-label={`${wallet.coins} monedas`}
+            aria-label={t("shop.coinsAria", { n: wallet.coins })}
           >
             🪙 {wallet.coins}
           </p>
@@ -258,10 +259,10 @@ export function ShopView() {
             </span>
             <span className="flex-1">
               <span className="block text-sm font-bold uppercase tracking-wide">
-                Oferta de hoy · cambia cada día
+                {t("shop.deal")}
               </span>
               <span className="font-extrabold">
-                {dealItem.name}:{" "}
+                {t(`item.${dealItem.id}`)}:{" "}
                 <s className="opacity-70">
                   {prices[dealItem.id] ?? dealItem.price}
                 </s>{" "}
@@ -283,7 +284,7 @@ export function ShopView() {
         <div
           className="flex flex-wrap items-center gap-2"
           role="tablist"
-          aria-label="Categorías"
+          aria-label={t("shop.categories")}
         >
           {SLOTS.map((s) => (
             <button
@@ -294,7 +295,7 @@ export function ShopView() {
               onClick={() => setSlot(s.slot)}
               className={`rounded-xl px-4 py-2 font-bold shadow-[0_3px_0_0_rgba(0,0,0,0.2)] ${slot === s.slot ? "bg-brand text-brand-fg" : "bg-surface-2"}`}
             >
-              <span aria-hidden>{s.icon}</span> {s.label}
+              <span aria-hidden>{s.icon}</span> {t(`slot.${s.slot}`)}
             </button>
           ))}
           <label className="ml-auto flex items-center gap-2 text-sm font-medium">
@@ -304,7 +305,7 @@ export function ShopView() {
               onChange={(e) => setOnlyOwned(e.target.checked)}
               className="h-4 w-4"
             />
-            Solo lo que tengo
+            {t("shop.onlyOwned")}
           </label>
         </div>
 
@@ -342,16 +343,16 @@ export function ShopView() {
                     mood="happy"
                   />
                   <span className="text-sm font-extrabold leading-tight">
-                    {item.name}
+                    {t(`item.${item.id}`)}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${RARITY_STYLE[item.rarity]}`}
                   >
-                    {RARITY_LABEL[item.rarity]}
+                    {t(`rarity.${item.rarity}`)}
                   </span>
                   {mine ? (
                     <span className="text-sm font-bold text-success">
-                      {isEquipped(item) ? "✔ Puesto" : "✔ Tuyo"}
+                      {isEquipped(item) ? t("shop.worn") : t("shop.mine")}
                     </span>
                   ) : (
                     <span
@@ -371,7 +372,7 @@ export function ShopView() {
           })}
           {list.length === 0 && (
             <li className="col-span-full text-sm text-muted">
-              Aquí todavía no tienes nada. ¡Gana monedas y compra!
+              {t("shop.nothing")}
             </li>
           )}
         </ul>
