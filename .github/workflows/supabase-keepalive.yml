@@ -1,0 +1,22 @@
+name: Mantener Supabase activo
+
+# Supabase pausa los proyectos gratuitos tras ~1 semana sin actividad.
+# Esta tarea consulta la base de datos cada 3 días para que no se pause.
+# Usa la clave pública (publishable), la misma que ya viaja en el navegador.
+on:
+  schedule:
+    - cron: '41 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar la base de datos
+        run: |
+          set -eu
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "https://fomdxwpxydxtqkbjtozl.supabase.co/rest/v1/shop_items?select=*&limit=1" \
+            -H "apikey: sb_publishable_AXrAZfEip3gTbP1BjidbNw_XSzPfNRH")
+          echo "Respuesta de Supabase: $code"
+          [ "$code" = "200" ]
