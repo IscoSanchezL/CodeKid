@@ -1,5 +1,6 @@
 import { blockLabel } from "@/components/game/program-editor";
 import type { BlockType } from "@/engine/types";
+import { T } from "@/i18n/t";
 
 const BLOCKS: { type: BlockType; cls: string; rot: number; dur: number; delay: number; scale: number }[] = [
   { type: "move", cls: "left-[5%] top-[30%]", rot: -12, dur: 9, delay: 0, scale: 1.1 },
@@ -23,7 +24,7 @@ export function FloatingBlocks() {
                 className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_0_28px_-2px_currentColor] sm:text-base ${l.color}`}
               >
                 <span>{l.icon}</span>
-                {l.text}
+                <T k={`block.${b.type}`} />
                 {b.type === "repeat" && <span className="rounded-lg bg-black/20 px-1.5 text-xs">×3</span>}
               </div>
             </div>

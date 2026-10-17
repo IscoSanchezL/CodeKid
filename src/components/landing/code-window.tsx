@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { blockLabel } from "@/components/game/program-editor";
 import type { Block } from "@/engine/types";
 import { toCode, type Lang } from "@/lib/codegen";
+import { useLang, useT } from "@/i18n";
 
 /** Programa de ejemplo: el reto «Zigzag» del nivel 2. */
 const DEMO: Block[] = [
@@ -44,6 +45,7 @@ function Highlight({ line }: { line: string }) {
 }
 
 function BlockTree({ blocks }: { blocks: Block[] }) {
+  const t = useT();
   return (
     <ul className="flex flex-col gap-1.5">
       {blocks.map((b) => {
@@ -52,8 +54,8 @@ function BlockTree({ blocks }: { blocks: Block[] }) {
           <li key={b.id}>
             <div className={`flex w-fit items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-bold shadow-[0_2px_0_rgba(0,0,0,0.3)] ${l.color}`}>
               <span aria-hidden>{l.icon}</span>
-              {l.text}
-              {b.type === "repeat" && <span className="rounded bg-black/20 px-1.5 text-xs">{b.times} veces</span>}
+              {t(`block.${b.type}`)}
+              {b.type === "repeat" && <span className="rounded bg-black/20 px-1.5 text-xs">{t("block.times", { n: b.times })}</span>}
             </div>
             {b.type === "repeat" && (
               <div className="ml-4 mt-1.5 border-l-2 border-dashed border-white/25 pl-3">
@@ -69,8 +71,10 @@ function BlockTree({ blocks }: { blocks: Block[] }) {
 
 /** Ventana de editor: a la izquierda los bloques, a la derecha el mismo programa escrito en vivo en código real. */
 export function CodeWindow() {
+  const t = useT();
+  const api = useLang();
   const [lang, setLang] = useState<Lang>("js");
-  const full = useMemo(() => toCode(DEMO, lang), [lang]);
+  const full = useMemo(() => toCode(DEMO, lang, api), [lang, api]);
   const [typed, setTyped] = useState(0);
 
   useEffect(() => {
@@ -82,7 +86,7 @@ export function CodeWindow() {
     }
     let n = 0;
     let wait = 0;
-    const t = window.setInterval(() => {
+    const timer = window.setInterval(() => {
       if (n < full.length) {
         n += 1;
         setTyped(n);
@@ -92,7 +96,7 @@ export function CodeWindow() {
         setTyped(0);
       }
     }, 38);
-    return () => window.clearInterval(t);
+    return () => window.clearInterval(timer);
   }, [full]);
 
   const lines = full.slice(0, typed).split("\n");
@@ -103,8 +107,8 @@ export function CodeWindow() {
         <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
         <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
         <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-        <span className="ml-2 font-mono text-xs text-white/60">reto-2-zigzag</span>
-        <div className="ml-auto flex gap-1 rounded-lg bg-black/30 p-1" role="tablist" aria-label="Lenguaje">
+        <span className="ml-2 font-mono text-xs text-white/60">{t("land.window.file")}</span>
+        <div className="ml-auto flex gap-1 rounded-lg bg-black/30 p-1" role="tablist" aria-label={t("code.language")}>
           {(["js", "python"] as const).map((l) => (
             <button
               key={l}
@@ -122,15 +126,15 @@ export function CodeWindow() {
 
       <div className="grid md:grid-cols-[1fr_auto_1.25fr]">
         <div className="p-5">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#5ee3ff]">Tus bloques</p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#5ee3ff]">{t("land.window.blocks")}</p>
           <BlockTree blocks={DEMO} />
         </div>
         <div aria-hidden className="hidden items-center md:flex">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-[#22d3ee] text-xl font-black text-[#03051a] shadow-[0_0_24px_#22d3ee]">⇄</span>
         </div>
         <div className="border-t border-white/10 bg-black/30 p-5 md:border-l md:border-t-0">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#ffb454]">…y el código real</p>
-          <pre className="min-h-[9.5rem] font-mono text-sm leading-relaxed" aria-label="Código generado">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#ffb454]">{t("land.window.code")}</p>
+          <pre className="min-h-[9.5rem] font-mono text-sm leading-relaxed" aria-label={t("land.window.generated")}>
             {lines.map((ln, i) => (
               <div key={i}>
                 <Highlight line={ln} />

@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { TX, useT } from "@/i18n";
 
 /** Recuperar la contraseña de un docente: pedir el enlace por correo y elegir una nueva. */
 export function RecoverForm({ mode }: { mode: "request" | "update" }) {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,10 +35,10 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
         setAccount(data.session.user.email ?? null);
       }
     });
-    const t = window.setTimeout(() => setWaited(true), 3000);
+    const timer = window.setTimeout(() => setWaited(true), 3000);
     return () => {
       sub.subscription.unsubscribe();
-      window.clearTimeout(t);
+      window.clearTimeout(timer);
     };
   }, [mode]);
 
@@ -100,17 +102,16 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
   if (mode === "request") {
     return (
       <Card>
-        <h1 className="text-2xl font-extrabold">Recupera tu contraseña</h1>
+        <h1 className="text-2xl font-extrabold">{t("rec.title")}</h1>
         <p className="mt-1 text-muted">
-          Te enviamos un enlace al correo de tu cuenta de docente.
+          {t("rec.lead")}
         </p>
         {sent ? (
           <p
             role="status"
             className="mt-6 rounded-xl bg-success/10 p-3 text-sm font-medium text-success"
           >
-            Si ese correo tiene cuenta, te llegará un enlace en unos minutos.
-            Revisa también la carpeta de spam.
+            {t("rec.sent")}
           </p>
         ) : (
           <form
@@ -119,7 +120,7 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
             noValidate
           >
             <Input
-              label="Correo"
+              label={t("auth.email")}
               name="email"
               type="email"
               autoComplete="email"
@@ -127,17 +128,17 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
             />
             {error && (
               <p role="alert" className="text-sm font-medium text-danger">
-                {error}
+                <TX text={error} />
               </p>
             )}
             <Button type="submit" disabled={loading}>
-              {loading ? "Enviando…" : "Enviar enlace"}
+              {loading ? t("rec.sending") : t("rec.send")}
             </Button>
           </form>
         )}
         <p className="mt-5 text-center text-sm text-muted">
           <Link className="font-semibold text-brand" href="/login">
-            ← Volver a entrar
+            {t("rec.back")}
           </Link>
         </p>
       </Card>
@@ -146,23 +147,22 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
 
   return (
     <Card>
-      <h1 className="text-2xl font-extrabold">Elige una contraseña nueva</h1>
+      <h1 className="text-2xl font-extrabold">{t("rec.newTitle")}</h1>
       {!ready ? (
         waited ? (
           <div className="mt-4 flex flex-col gap-3">
             <p className="rounded-xl bg-warn/15 p-3 text-sm font-medium">
-              No hay una sesión activa ni un enlace de recuperación. Entra con
-              tu correo y contraseña, o pide un enlace nuevo al correo.
+              {t("rec.noSession")}
             </p>
             <Link
               href="/login"
               className="text-center font-semibold text-brand"
             >
-              Ir a entrar
+              {t("rec.goLogin")}
             </Link>
           </div>
         ) : (
-          <p className="mt-4 text-muted">Comprobando el enlace…</p>
+          <p className="mt-4 text-muted">{t("rec.checking")}</p>
         )
       ) : (
         <form
@@ -171,11 +171,11 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
           noValidate
         >
           <p className="rounded-xl bg-surface-2 p-3 text-sm">
-            Vas a cambiar la contraseña de la cuenta:{" "}
+            {t("rec.changing")}
             <strong className="break-all">{account ?? "…"}</strong>
           </p>
           <Input
-            label="Contraseña nueva"
+            label={t("rec.newPass")}
             name="password"
             type="password"
             autoComplete="new-password"
@@ -183,7 +183,7 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
             required
           />
           <Input
-            label="Repite la contraseña"
+            label={t("rec.again")}
             name="again"
             type="password"
             autoComplete="new-password"
@@ -192,17 +192,17 @@ export function RecoverForm({ mode }: { mode: "request" | "update" }) {
           />
           {error && (
             <p role="alert" className="text-sm font-medium text-danger">
-              {error}
+              <TX text={error} />
             </p>
           )}
           <Button type="submit" disabled={loading}>
-            {loading ? "Guardando…" : "Guardar y entrar"}
+            {loading ? t("rec.saving") : t("rec.save")}
           </Button>
         </form>
       )}
       <p className="mt-5 text-center text-sm text-muted">
         <Link className="font-semibold text-brand" href="/recuperar">
-          Pedir otro enlace
+          {t("rec.another")}
         </Link>
       </p>
     </Card>

@@ -1,4 +1,7 @@
+"use client";
+
 import { Fuzzy, type FuzzyVariant } from "@/components/game/fuzzy";
+import { useT } from "@/i18n";
 
 const STUDENTS: { name: string; variant: FuzzyVariant; stars: number; coins: number }[] = [
   { name: "Ana", variant: "cyan", stars: 11, coins: 95 },
@@ -9,19 +12,20 @@ const STUDENTS: { name: string; variant: FuzzyVariant; stars: number; coins: num
 
 /** Maqueta del panel docente (datos de ejemplo). */
 export function TeacherPreview() {
+  const t = useT();
   return (
-    <div className="glass mx-auto max-w-md rounded-2xl p-5" aria-label="Ejemplo del panel docente">
+    <div className="glass mx-auto max-w-md rounded-2xl p-5" aria-label={t("land.preview.aria")}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-white/70">Panel docente · Clase 1A</p>
-        <span className="rounded-full bg-[#22d3ee]/20 px-2 py-0.5 text-xs font-bold text-[#8af0ff]">4 alumnos</span>
+        <p className="text-sm font-bold text-white/70">{t("land.preview.title")}</p>
+        <span className="rounded-full bg-[#22d3ee]/20 px-2 py-0.5 text-xs font-bold text-[#8af0ff]">{t("land.preview.students")}</span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-black/30 p-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Código</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t("land.preview.code")}</p>
           <p className="font-mono text-2xl font-extrabold tracking-[0.15em] text-[#5ee3ff]">• • • • •</p>
         </div>
         <div className="rounded-xl bg-black/30 p-3">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Clave</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t("land.preview.key")}</p>
           <p className="font-mono text-2xl font-extrabold tracking-[0.15em] text-[#ffb454]">• •</p>
         </div>
       </div>

@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SoundToggle } from "@/components/brand/sound-toggle";
+import { LangSwitch } from "@/i18n/lang-switch";
+import { PageEffects } from "@/i18n/page-effects";
 
 const sans = localFont({ src: "./fonts/GeistVF.woff", variable: "--font-sans", weight: "100 900" });
 const mono = localFont({ src: "./fonts/GeistMonoVF.woff", variable: "--font-mono", weight: "100 900" });
@@ -21,10 +23,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="es" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-dvh">
         {children}
         <SoundToggle />
+        <LangSwitch />
+        <PageEffects />
       </body>
     </html>
   );

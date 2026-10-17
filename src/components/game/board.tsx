@@ -5,6 +5,7 @@ import { parseLevel } from "@/engine/interpreter";
 import type { Level, Snapshot } from "@/engine/types";
 import { SkyPiece, type SkyKind } from "@/components/scenery/sky";
 import { Fuzzy, type FuzzyVariant, type Outfit } from "./fuzzy";
+import { useT } from "@/i18n";
 
 const T = 64; // lado de una casilla (px)
 
@@ -85,6 +86,7 @@ export function Board({
   variant = "cyan",
   outfit,
 }: Props) {
+  const t = useT();
   const map = useMemo(() => parseLevel(level), [level]);
   const cols = map.width;
   const rows = map.height;
@@ -200,7 +202,7 @@ export function Board({
           height={H}
           className="absolute inset-0"
           role="img"
-          aria-label="Mapa del reto"
+          aria-label={t("play.board")}
         >
           <defs>
             <linearGradient id="bd-grass" x1="0" y1="0" x2="0" y2="1">

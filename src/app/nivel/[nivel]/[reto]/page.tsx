@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { UserBar } from "@/components/brand/user-bar";
 import { Player } from "@/components/game/player";
 import { LevelGate } from "@/components/map/level-gate";
 import { challengesOf, CHALLENGES, getChallenge } from "@/engine/levels";
-import { isAdvanced, levelMeta, planetOf } from "@/lib/levels";
+import { ChallengeCrumb, ChallengeHeading } from "@/components/map/level-heading";
 
 type Params = { nivel: string; reto: string };
 
@@ -25,7 +24,6 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
 export default function RetoPage({ params }: { params: Params }) {
   const level = getChallenge(Number(params.nivel), Number(params.reto));
   if (!level) notFound();
-  const meta = levelMeta(level.level);
 
   return (
     <>
@@ -34,27 +32,14 @@ export default function RetoPage({ params }: { params: Params }) {
           <Logo href="/mapa" />
           <div className="flex items-center gap-4">
             <p className="hidden text-sm font-medium text-muted sm:block">
-              {isAdvanced(level.level) ? "⚡ Avanzado" : `Nivel ${level.level}`} · {levelMeta(planetOf(level.level))?.title ?? meta?.title}
+              <ChallengeCrumb level={level.level} />
             </p>
             <UserBar />
           </div>
         </div>
       </header>
       <main className="rise mx-auto flex w-full max-w-[1400px] flex-col gap-2 px-4 py-3 lg:h-[calc(100dvh-62px)]">
-        <div className="flex flex-wrap items-baseline gap-x-4">
-          <h1 className="text-xl font-extrabold">
-            Reto {level.challenge}: {level.title}
-          </h1>
-          <p className="text-sm text-muted">
-            Lleva al robot hasta la bandera 🏁
-          </p>
-          <Link
-            href={`/nivel/${level.level}`}
-            className="ml-auto text-sm font-medium text-muted hover:text-fg"
-          >
-            ← Retos del nivel {level.level}
-          </Link>
-        </div>
+        <ChallengeHeading level={level.level} challenge={level.challenge} title={level.title} />
         <LevelGate level={level.level}>
           <Player level={level} total={challengesOf(level.level).length} />
         </LevelGate>

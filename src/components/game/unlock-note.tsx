@@ -5,9 +5,11 @@ import { PLAYABLE_LEVELS } from "@/engine/levels";
 import { ADV_OFFSET, isAdvanced, levelMeta, planetOf } from "@/lib/levels";
 import { maxStars, PASS_STARS } from "@/lib/unlock";
 import { useMapProgress } from "@/components/map/use-current-level";
+import { levelTitle, useT } from "@/i18n";
 
 /** Estado del planeta (11★) al ganar: cuánto falta, o qué camino elegir al superarlo (modo avanzado o siguiente planeta). */
 export function UnlockNote({ level }: { level: number }) {
+  const t = useT();
   const state = useMapProgress();
   const adv = isAdvanced(level);
   const planet = planetOf(level);
@@ -25,34 +27,32 @@ export function UnlockNote({ level }: { level: number }) {
   if (!passed)
     return (
       <p role="status" className={box}>
-        🚀 Llevas {have}/{need}★ en {adv ? "el modo avanzado" : "este planeta"}.
+        {t("unlock.progress", { have, need, where: adv ? t("unlock.whereAdv") : t("unlock.wherePlanet") })}
         {adv
-          ? ` Con ${need} lo superas.`
+          ? ` ${t("unlock.advPass", { need })}`
           : next
-            ? ` Con ${need} se abre «${next.title}».`
+            ? ` ${t("unlock.nextOpens", { need, title: levelTitle(t, next.id, next.title) })}`
             : ""}
       </p>
     );
   return (
     <div role="status" className={box}>
       <p>
-        {adv
-          ? "🏅 ¡Modo avanzado superado!"
-          : "🎉 ¡Planeta superado! ¿Qué quieres hacer ahora?"}
+        {adv ? t("unlock.advDone") : t("unlock.planetDone")}
       </p>
       <div className="mt-2 flex flex-wrap gap-2 text-fg">
         {!adv && hasAdv && (
           <Link href={`/nivel/${advLevel}`} className="rounded-full border border-fuchsia-400/60 bg-surface px-3 py-1 font-extrabold">
-            ⚡ Modo avanzado
+            {t("unlock.advMode")}
           </Link>
         )}
         {next ? (
           <Link href={`/nivel/${planet + 1}`} className="rounded-full border border-cyan-400/60 bg-surface px-3 py-1 font-extrabold">
-            🚀 Siguiente planeta: {next.title}
+            {t("unlock.nextPlanet", { title: levelTitle(t, next.id, next.title) })}
           </Link>
         ) : (
           <Link href="/mapa" className="rounded-full border border-cyan-400/60 bg-surface px-3 py-1 font-extrabold">
-            🗺️ Volver al mapa
+            {t("unlock.backMap")}
           </Link>
         )}
       </div>
