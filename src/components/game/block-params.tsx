@@ -1,18 +1,10 @@
 "use client";
 
 import type { Atom, AtomKind, Block, CondExpr, Turn } from "@/engine/types";
+import { useT } from "@/i18n";
 
-const KINDS: [AtomKind, string][] = [
-  ["wall", "hay pared adelante"],
-  ["free", "hay camino libre"],
-  ["coin", "hay moneda adelante"],
-  ["goal", "la meta está adelante"],
-];
-const TURN_LABEL: Record<Turn, string> = {
-  L: "↰ izquierda",
-  R: "↱ derecha",
-  S: "↑ recto",
-};
+const KINDS: AtomKind[] = ["wall", "free", "coin", "goal"];
+const TURNS: Turn[] = ["L", "R", "S"];
 
 const sel = "rounded-lg bg-black/15 px-1 py-0.5 text-sm";
 
@@ -27,17 +19,18 @@ function AtomEditor({
   onChange: (a: Atom) => void;
   label: string;
 }) {
+  const t = useT();
   return (
     <span className="flex items-center gap-1">
       <select
-        aria-label={`${label}: negación`}
+        aria-label={t("param.negation", { label })}
         value={atom.not ? "no" : "si"}
         disabled={disabled}
         onChange={(e) => onChange({ ...atom, not: e.target.value === "no" })}
         className={sel}
       >
         <option value="si">—</option>
-        <option value="no">no</option>
+        <option value="no">{t("param.not")}</option>
       </select>
       <select
         aria-label={label}
@@ -48,9 +41,9 @@ function AtomEditor({
         }
         className={sel}
       >
-        {KINDS.map(([k, t]) => (
+        {KINDS.map((k) => (
           <option key={k} value={k}>
-            {t}
+            {t(`atom.${k}`)}
           </option>
         ))}
       </select>
@@ -74,6 +67,7 @@ export function BlockParams({
   disabled: boolean;
   onParam: (patch: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   switch (block.type) {
     case "if":
     case "while": {
@@ -83,11 +77,11 @@ export function BlockParams({
           <AtomEditor
             atom={c.a}
             disabled={disabled}
-            label="Condición"
+            label={t("param.condition")}
             onChange={(a) => onParam({ cond: { ...c, a } })}
           />
           <select
-            aria-label="Unir con"
+            aria-label={t("param.join")}
             value={c.op ?? ""}
             disabled={disabled}
             onChange={(e) => {
@@ -100,15 +94,15 @@ export function BlockParams({
             }}
             className={sel}
           >
-            <option value="">solo</option>
-            <option value="and">y</option>
-            <option value="or">o</option>
+            <option value="">{t("param.alone")}</option>
+            <option value="and">{t("param.and")}</option>
+            <option value="or">{t("param.or")}</option>
           </select>
           {c.op && c.b && (
             <AtomEditor
               atom={c.b}
               disabled={disabled}
-              label="Segunda condición"
+              label={t("param.second")}
               onChange={(b) => onParam({ cond: { ...c, b } })}
             />
           )}
@@ -119,7 +113,7 @@ export function BlockParams({
     case "call":
       return (
         <select
-          aria-label="Nombre del bloque"
+          aria-label={t("param.blockName")}
           value={block.name}
           disabled={disabled}
           onChange={(e) => onParam({ name: e.target.value })}
@@ -132,7 +126,7 @@ export function BlockParams({
     case "setvar":
       return (
         <select
-          aria-label="Valor"
+          aria-label={t("param.value")}
           value={block.value}
           disabled={disabled}
           onChange={(e) => onParam({ value: Number(e.target.value) })}
@@ -149,18 +143,18 @@ export function BlockParams({
       return (
         <span className="flex items-center gap-1">
           <select
-            aria-label="Operación"
+            aria-label={t("param.operation")}
             value={block.op}
             disabled={disabled}
             onChange={(e) => onParam({ op: e.target.value })}
             className={sel}
           >
-            <option value="+">+ suma</option>
-            <option value="-">− resta</option>
-            <option value="*">× multiplica</option>
+            <option value="+">{t("param.plus")}</option>
+            <option value="-">{t("param.minus")}</option>
+            <option value="*">{t("param.times")}</option>
           </select>
           <select
-            aria-label="Cantidad"
+            aria-label={t("param.amount")}
             value={block.value}
             disabled={disabled}
             onChange={(e) => onParam({ value: Number(e.target.value) })}
@@ -177,11 +171,11 @@ export function BlockParams({
     case "list":
       return (
         <span className="flex flex-wrap items-center gap-1">
-          {block.items.map((t, i) => (
+          {block.items.map((item, i) => (
             <select
               key={i}
-              aria-label={`Giro ${i + 1}`}
-              value={t}
+              aria-label={t("param.turnN", { n: i + 1 })}
+              value={item}
               disabled={disabled}
               onChange={(e) =>
                 onParam({
@@ -192,16 +186,16 @@ export function BlockParams({
               }
               className={sel}
             >
-              {(Object.keys(TURN_LABEL) as Turn[]).map((k) => (
+              {TURNS.map((k) => (
                 <option key={k} value={k}>
-                  {TURN_LABEL[k]}
+                  {t(`turn.${k}`)}
                 </option>
               ))}
             </select>
           ))}
           <button
             type="button"
-            aria-label="Añadir giro"
+            aria-label={t("param.addTurn")}
             disabled={disabled || block.items.length >= 12}
             onClick={() => onParam({ items: [...block.items, "R"] })}
             className="grid h-6 w-6 place-items-center rounded-lg bg-black/15 hover:bg-black/30 disabled:opacity-40"
@@ -210,7 +204,7 @@ export function BlockParams({
           </button>
           <button
             type="button"
-            aria-label="Quitar giro"
+            aria-label={t("param.removeTurn")}
             disabled={disabled || block.items.length <= 1}
             onClick={() => onParam({ items: block.items.slice(0, -1) })}
             className="grid h-6 w-6 place-items-center rounded-lg bg-black/15 hover:bg-black/30 disabled:opacity-40"

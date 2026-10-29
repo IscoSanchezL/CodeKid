@@ -11,6 +11,7 @@ import {
   sfx,
   subscribeSound,
 } from "@/lib/audio";
+import { useT } from "@/i18n";
 
 /** Cada mundo tiene su música: niveles 1, 2 y 3 distintos y el resto repite en ciclo; menús y mapa, «cielo». */
 const WORLD_THEMES = ["pradera", "bosque", "playa"];
@@ -23,6 +24,7 @@ function themeFor(path: string) {
 export function SoundToggle() {
   const on = useSyncExternalStore(subscribeSound, isSoundEnabled, () => true);
   const path = usePathname();
+  const t = useT();
 
   useEffect(() => {
     setMusicTheme(themeFor(path));
@@ -53,10 +55,8 @@ export function SoundToggle() {
         if (!on) window.setTimeout(() => sfx("click"), 50);
       }}
       aria-pressed={on}
-      aria-label={
-        on ? "Silenciar música y sonidos" : "Activar música y sonidos"
-      }
-      title={on ? "Silenciar" : "Activar sonido"}
+      aria-label={on ? t("sound.mute.aria") : t("sound.unmute.aria")}
+      title={on ? t("sound.mute") : t("sound.unmute")}
       className="btn-gloss !fixed bottom-4 left-4 z-40 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-b from-[#8b7bff] to-[#5a46e0] text-2xl text-white shadow-[0_4px_0_#3a2aa8,0_12px_22px_-8px_rgba(90,70,224,0.7)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
     >
       <span aria-hidden>{on ? "🔊" : "🔇"}</span>

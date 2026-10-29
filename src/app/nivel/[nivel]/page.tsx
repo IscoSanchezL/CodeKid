@@ -11,7 +11,9 @@ import { WORLDS } from "@/components/map/island";
 import { LevelGate } from "@/components/map/level-gate";
 import { challengesOf, PLAYABLE_LEVELS } from "@/engine/levels";
 import { PlanetChoice } from "@/components/map/planet-choice";
-import { isAdvanced, levelMeta, planetOf } from "@/lib/levels";
+import { ChallengeName, LevelHeading } from "@/components/map/level-heading";
+import { T } from "@/i18n/t";
+import { levelMeta, planetOf } from "@/lib/levels";
 
 type Params = { nivel: string };
 
@@ -30,7 +32,6 @@ export default function NivelPage({ params }: { params: Params }) {
   const list = challengesOf(n);
   if (!meta || list.length === 0) notFound();
   const world = WORLDS[(planetOf(n) - 1) % WORLDS.length];
-  const adv = isAdvanced(n);
 
   return (
     <SceneShell>
@@ -41,21 +42,14 @@ export default function NivelPage({ params }: { params: Params }) {
             href="/mapa"
             className="text-sm font-semibold text-fg/80 hover:text-fg"
           >
-            ← Mapa
+            <T k="nav.map" />
           </Link>
           <UserBar />
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-4">
         <LevelGate level={n}>
-          <p className="text-sm font-bold uppercase tracking-wide text-fg/70">
-            Mundo {world.name}
-            {adv ? " · ⚡ Modo avanzado" : ""}
-          </p>
-          <h1 className="text-3xl font-extrabold">
-            {adv ? `Planeta ${planetOf(n)}` : `Nivel ${meta.id}`}: {meta.title}
-          </h1>
-          <p className="mt-1 text-fg/80">{meta.summary}</p>
+          <LevelHeading level={n} />
           <PlanetChoice level={n} />
           <ol className="rise-stagger mt-8 grid gap-4 sm:grid-cols-2">
             {list.map((c) => (
@@ -74,7 +68,7 @@ export default function NivelPage({ params }: { params: Params }) {
                   </span>
                   <span className="flex-1">
                     <span className="block font-extrabold leading-tight">
-                      {c.title}
+                      <ChallengeName level={c.level} challenge={c.challenge} title={c.title} />
                     </span>
                     <StarsBadge level={c.level} challenge={c.challenge} />
                   </span>

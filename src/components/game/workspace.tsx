@@ -36,6 +36,7 @@ import type { Block, BlockType } from "@/engine/types";
 import { BlockParams } from "./block-params";
 import { cn } from "@/lib/utils";
 import { blockLabel } from "./program-editor";
+import { useT, type TFn } from "@/i18n";
 
 type Drag = {
   kind: "palette" | "block";
@@ -75,18 +76,15 @@ const collision: CollisionDetection = (args) => {
   return near.filter((c) => Number(c.data?.value ?? 0) < limit).slice(0, 1);
 };
 
-const ES = {
-  screenReaderInstructions: {
-    draggable:
-      "Para mover un bloque, pulsa la barra espaciadora, desplázate con las flechas hasta el hueco que quieras y pulsa espacio otra vez para soltarlo. Escape cancela.",
-  },
+const a11y = (t: TFn) => ({
+  screenReaderInstructions: { draggable: t("ws.drag.instructions") },
   announcements: {
-    onDragStart: () => "Bloque levantado.",
-    onDragOver: () => "Sobre un hueco del programa.",
-    onDragEnd: () => "Bloque soltado.",
-    onDragCancel: () => "Movimiento cancelado.",
+    onDragStart: () => t("ws.drag.start"),
+    onDragOver: () => t("ws.drag.over"),
+    onDragEnd: () => t("ws.drag.end"),
+    onDragCancel: () => t("ws.drag.cancel"),
   },
-};
+});
 
 type Props = {
   allowed: BlockType[];
@@ -104,6 +102,7 @@ export function Workspace({
   editing,
   runningId,
 }: Props) {
+  const t = useT();
   const [drag, setDrag] = useState<Drag | null>(null);
   const [container, setContainer] = useState<string | null>(null);
 
@@ -181,7 +180,7 @@ export function Workspace({
         sensors={sensors}
         collisionDetection={collision}
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-        accessibility={ES}
+        accessibility={a11y(t)}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragCancel={() => setDrag(null)}
@@ -194,7 +193,7 @@ export function Workspace({
 
         <Card className="plank min-h-48 p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
           <h2 className="mb-3 flex items-center justify-between font-bold">
-            Mi programa
+            {t("ws.program")}
             {program.length > 0 && editing && (
               <button
                 type="button"
@@ -204,7 +203,7 @@ export function Workspace({
                   setContainer(null);
                 }}
               >
-                Borrar todo
+                {t("ws.clear")}
               </button>
             )}
           </h2>
@@ -227,6 +226,7 @@ function Chip({
   floating?: boolean;
 }) {
   const l = blockLabel(type);
+  const t = useT();
   return (
     <div
       className={cn(
@@ -237,7 +237,7 @@ function Chip({
       )}
     >
       <span aria-hidden>{l.icon}</span>
-      {l.text}
+      {t(`block.${type}`)}
     </div>
   );
 }
@@ -252,6 +252,7 @@ function Palette({
   used: number;
 }) {
   const { drag, editing } = useWs();
+  const t = useT();
   const deleting = drag?.kind === "block";
   const { setNodeRef, isOver } = useDroppable({
     id: "trash",
@@ -268,13 +269,13 @@ function Palette({
     >
       <div ref={setNodeRef}>
         <h2 className="mb-1 flex items-center justify-between font-bold">
-          Bloques
-          <span className="text-sm font-medium text-muted">{used} usados</span>
+          {t("ws.blocks")}
+          <span className="text-sm font-medium text-muted">{t("ws.used", { n: used })}</span>
         </h2>
         <p className="mb-3 text-xs text-muted">
           {deleting
-            ? "🗑️ Suelta aquí para quitar el bloque"
-            : "Arrastra un bloque al programa, o tócalo para añadirlo al final."}
+            ? t("ws.trash")
+            : t("ws.paletteHelp")}
         </p>
         <div className="flex flex-wrap gap-2">
           {allowed.map((t) => (
@@ -306,6 +307,7 @@ function PaletteChip({
     disabled,
   });
   const l = blockLabel(type);
+  const t = useT();
   return (
     <button
       ref={setNodeRef}
@@ -321,7 +323,7 @@ function PaletteChip({
       )}
     >
       <span aria-hidden>{l.icon}</span>
-      {l.text}
+      {t(`block.${type}`)}
     </button>
   );
 }
@@ -374,11 +376,12 @@ function BlockList({
   blocks: Block[];
   containerId: string | null;
 }) {
+  const t = useT();
   const empty =
     blocks.length === 0
       ? containerId === null
-        ? "Arrastra aquí tus bloques, o toca uno de arriba."
-        : "Suelta bloques aquí dentro"
+        ? t("ws.emptyRoot")
+        : t("ws.emptyInner")
       : undefined;
   return (
     <ol className="flex flex-col">
@@ -395,6 +398,7 @@ function BlockList({
 
 function BlockRow({ block }: { block: Block }) {
   const ctx = useWs();
+  const t = useT();
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
     id: block.id,
     data: { kind: "block", type: block.type },
@@ -419,7 +423,7 @@ function BlockRow({ block }: { block: Block }) {
         <span
           {...listeners}
           {...attributes}
-          aria-label={`Mover «${l.text}»`}
+          aria-label={t("ws.move", { name: t(`block.${block.type}`) })}
           className={cn(
             "flex flex-1 touch-none select-none items-center gap-2",
             ctx.editing && "cursor-grab",
@@ -429,7 +433,7 @@ function BlockRow({ block }: { block: Block }) {
             ⠿
           </span>
           <span aria-hidden>{l.icon}</span>
-          <span>{l.text}</span>
+          <span>{t(`block.${block.type}`)}</span>
         </span>
 
         <BlockParams
@@ -440,7 +444,7 @@ function BlockRow({ block }: { block: Block }) {
         {block.type === "repeat" && (
           <label className="flex items-center gap-1 text-sm">
             <select
-              aria-label="Veces a repetir"
+              aria-label={t("ws.repeatTimes")}
               value={block.times}
               disabled={!ctx.editing}
               onChange={(e) => ctx.onTimes(block.id, Number(e.target.value))}
@@ -452,12 +456,12 @@ function BlockRow({ block }: { block: Block }) {
                 </option>
               ))}
             </select>
-            veces
+            {t("ws.timesWord")}
           </label>
         )}
         <button
           type="button"
-          aria-label={`Quitar ${l.text}`}
+          aria-label={t("ws.remove", { name: t(`block.${block.type}`) })}
           disabled={!ctx.editing}
           onClick={() => ctx.onRemove(block.id)}
           className="grid h-7 w-7 place-items-center rounded-lg bg-black/15 hover:bg-black/30 disabled:opacity-40"
@@ -484,8 +488,8 @@ function BlockRow({ block }: { block: Block }) {
             className="mb-1 text-xs font-semibold text-[#0b1440]/70 underline-offset-2 hover:underline"
           >
             {ctx.container === block.id
-              ? "✔ Al tocar un bloque se añade aquí dentro"
-              : "Añadir bloques aquí dentro"}
+              ? t("ws.addInsideOn")
+              : t("ws.addInside")}
           </button>
           <BlockList blocks={block.body} containerId={block.id} />
         </div>

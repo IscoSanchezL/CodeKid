@@ -3,6 +3,7 @@
 import { useId } from "react";
 import type { Dir } from "@/engine/types";
 import { Glasses, Hat, Neck, NECK_BEHIND, NeckFront } from "./outfits";
+import { useT } from "@/i18n";
 
 export type FuzzyVariant = "cyan" | "purple" | "orange" | "green" | "rainbow" | "pink" | "red" | "gold";
 export type FuzzyMood = "idle" | "happy" | "bump";
@@ -40,6 +41,7 @@ type Props = {
 /** Bit: robot-chip de píxeles con cara de pantalla y el símbolo </> en la frente. SVG con degradados (sin filtros pesados). */
 export function Fuzzy({ variant = "cyan", outfit, dir = 2, mood = "idle", size = 80, className }: Props) {
   const uid = useId().replace(/:/g, "");
+  const t = useT();
   const c = PALETTE[variant];
   const look = LOOK[dir];
   const fx = look.dx * 0.6;
@@ -48,7 +50,7 @@ export function Fuzzy({ variant = "cyan", outfit, dir = 2, mood = "idle", size =
   const eyeH = mood === "happy" ? 16 : 20;
 
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} className={className} role="img" aria-label="Personaje" overflow="visible">
+    <svg viewBox="0 0 100 100" width={size} height={size} className={className} role="img" aria-label={t("fuzzy.aria")} overflow="visible">
       <defs>
         <linearGradient id={`body-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={c.light} />

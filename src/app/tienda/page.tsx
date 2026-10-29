@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { UserBar } from "@/components/brand/user-bar";
 import { ShopView } from "@/components/shop/shop-view";
+import { T } from "@/i18n/t";
 
 export const metadata: Metadata = { title: "Tienda" };
 
@@ -17,7 +18,7 @@ export default function TiendaPage() {
               href="/mapa"
               className="text-sm font-semibold text-muted hover:text-fg"
             >
-              ← Mapa
+              <T k="nav.map" />
             </Link>
             <UserBar />
           </div>

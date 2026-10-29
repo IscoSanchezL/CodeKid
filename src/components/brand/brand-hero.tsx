@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Fuzzy } from "@/components/game/fuzzy";
+import { useT } from "@/i18n";
 
 /**
  * Imagen principal de la marca. Busca el archivo en /public/brand (jpg, png o webp).
@@ -58,8 +59,9 @@ function Placeholder() {
 
 /** Texto de marca: «CodeKid» con degradado y relieve + el lema. Va debajo de la imagen. */
 export function BrandText({ className = "" }: { className?: string }) {
+  const t = useT();
   return (
-    <svg viewBox="0 0 600 150" className={`block h-auto w-full ${className}`} role="img" aria-label="CodeKid — Juega. Crea. Programa.">
+    <svg viewBox="0 0 600 150" className={`block h-auto w-full ${className}`} role="img" aria-label={t("brand.tagline.aria")}>
       <defs>
         <linearGradient id="bt-silver" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ffffff" />
@@ -91,7 +93,7 @@ export function BrandText({ className = "" }: { className?: string }) {
       </g>
       <g fontFamily="inherit" fontWeight="800" fontSize="19" letterSpacing="5" textAnchor="middle">
         <text x="300" y="138" fill="#9fb4e6">
-          <tspan fill="#8af0ff">JUEGA</tspan> · <tspan fill="#ffffff">CREA</tspan> · <tspan fill="url(#bt-orange)">PROGRAMA</tspan>
+          <tspan fill="#8af0ff">{t("brand.play")}</tspan> · <tspan fill="#ffffff">{t("brand.create")}</tspan> · <tspan fill="url(#bt-orange)">{t("brand.code")}</tspan>
         </text>
       </g>
     </svg>
@@ -103,6 +105,7 @@ export function BrandText({ className = "" }: { className?: string }) {
  * Con `blend`, el negro de la imagen se funde con el fondo (modo «screen»), para que flote en el cielo.
  */
 export function BrandImage({ className = "", blend = false }: { className?: string; blend?: boolean }) {
+  const t = useT();
   const [idx, setIdx] = useState(0);
   const style = blend
     ? { mixBlendMode: "screen" as const, WebkitMaskImage: "radial-gradient(ellipse 62% 66% at 50% 48%, #000 55%, transparent 100%)", maskImage: "radial-gradient(ellipse 62% 66% at 50% 48%, #000 55%, transparent 100%)" }
@@ -110,7 +113,7 @@ export function BrandImage({ className = "", blend = false }: { className?: stri
   return idx < SOURCES.length ? (
     <Image
       src={SOURCES[idx]}
-      alt="Personaje de CodeKid con visor de programador"
+      alt={t("brand.alt")}
       width={1536}
       height={1024}
       priority

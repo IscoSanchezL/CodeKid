@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { isAdvanced, levelMeta } from "@/lib/levels";
 import { prerequisite, starsNeeded } from "@/lib/unlock";
 import { useMapProgress } from "./use-current-level";
+import { levelTitle, useT } from "@/i18n";
 
 /** Protege un planeta: solo se puede jugar si el jugador reunió las estrellas del planeta anterior. */
 export function LevelGate({
@@ -16,8 +17,9 @@ export function LevelGate({
   children: React.ReactNode;
 }) {
   const state = useMapProgress();
+  const t = useT();
   if (!state.ready)
-    return <p className="py-16 text-center text-muted">Cargando…</p>;
+    return <p className="py-16 text-center text-muted">{t("gate.loading")}</p>;
   if (state.unlocked.has(level)) return <>{children}</>;
 
   const preLevel = prerequisite(level);
@@ -31,11 +33,11 @@ export function LevelGate({
         🔒
       </p>
       <h2 className="mt-2 text-2xl font-extrabold">
-        {adv ? "El modo avanzado todavía está cerrado" : "Este planeta todavía está cerrado"}
+        {adv ? t("gate.advClosed") : t("gate.planetClosed")}
       </h2>
       <p className="mt-2 text-muted">
-        Para abrirlo necesitas <strong>{need} estrellas</strong> en «
-        {prev?.title ?? "el planeta anterior"}». Llevas{" "}
+        {t("gate.need1")}<strong>{t("gate.need2", { n: need })}</strong>
+        {t("gate.need3", { title: prev ? levelTitle(t, preLevel, prev.title) : t("gate.prev") })}
         <strong>
           {have}/{need}
         </strong>
@@ -43,13 +45,13 @@ export function LevelGate({
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <ButtonLink href={`/nivel/${preLevel}`}>
-          Ir a «{prev?.title ?? "anterior"}»
+          {t("gate.goTo", { title: prev ? levelTitle(t, preLevel, prev.title) : t("gate.goPrev") })}
         </ButtonLink>
         <Link
           href="/mapa"
           className="grid h-11 place-items-center px-3 font-semibold text-brand"
         >
-          Volver al mapa
+          {t("gate.back")}
         </Link>
       </div>
     </Card>

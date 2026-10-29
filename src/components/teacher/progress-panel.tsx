@@ -18,6 +18,7 @@ import {
   type StudentReport,
 } from "@/lib/report";
 import { createClient } from "@/lib/supabase/client";
+import { challengeTitle, TX, useLang, useT, type TFn } from "@/i18n";
 
 const CATALOG: Challenge[] = CHALLENGES.map((c) => ({
   level: c.level,
@@ -28,16 +29,21 @@ const CATALOG: Challenge[] = CHALLENGES.map((c) => ({
 
 type Ledger = { delta: number; reason: string; created_at: string };
 
-function reasonLabel(r: string): string {
-  if (r.startsWith("compra:")) return `Compró «${r.slice(7)}»`;
-  if (r.startsWith("diario:")) return `Bonus diario (${r.slice(7)})`;
-  if (r.startsWith("reto:")) return `Reto ${r.slice(5)} superado`;
+/** Motivo de un movimiento de monedas. En la base de datos se guarda en español («compra:Flor»); aquí solo se muestra. */
+function reasonLabel(r: string, t: TFn): string {
+  if (r.startsWith("compra:")) {
+    const id = r.slice(7);
+    return t("p.bought", { item: t(`item.${id}`) === `item.${id}` ? id : t(`item.${id}`) });
+  }
+  if (r.startsWith("diario:")) return t("p.daily", { date: r.slice(7) });
+  if (r.startsWith("reto:")) return t("p.challengeDone", { id: r.slice(5) });
   return r;
 }
 
 function Stars({ n }: { n: number }) {
+  const t = useT();
   return (
-    <span aria-label={`${n} de 3 estrellas`} className="whitespace-nowrap">
+    <span aria-label={t("p.stars", { n })} className="whitespace-nowrap">
       {[1, 2, 3].map((i) => (
         <span key={i} className={i <= n ? "text-warn" : "text-border"}>
           ★
@@ -56,6 +62,8 @@ export function ProgressPanel({
   students: Student[];
   className: string;
 }) {
+  const t = useT();
+  const lang = useLang();
   const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [attempts, setAttempts] = useState<AttemptRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
@@ -146,13 +154,13 @@ export function ProgressPanel({
   const needHelp = rows.filter((r) => r.help);
 
   function exportCsv() {
-    const blob = new Blob(["﻿" + toCsv(rows, CATALOG, now)], {
+    const blob = new Blob(["﻿" + toCsv(rows, CATALOG, now, lang)], {
       type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `avance-${className.replace(/\W+/g, "_")}.csv`;
+    a.download = `${t("r.file")}-${className.replace(/\W+/g, "_")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -160,7 +168,7 @@ export function ProgressPanel({
   if (students.length === 0)
     return (
       <Card className="text-center text-muted">
-        Añade alumnos para ver su avance aquí.
+        {t("p.addStudents")}
       </Card>
     );
 
@@ -177,7 +185,7 @@ export function ProgressPanel({
     <div className="flex flex-col gap-4">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-bold">Avance de «{className}»</h2>
+          <h2 className="font-bold">{t("p.progressOf", { name: className })}</h2>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -185,10 +193,10 @@ export function ProgressPanel({
               onClick={() => void load()}
               disabled={loading}
             >
-              {loading ? "Actualizando…" : "Actualizar"}
+              {loading ? t("p.updating") : t("p.update")}
             </Button>
             <Button variant="outline" size="sm" onClick={exportCsv}>
-              Descargar CSV
+              {t("p.csv")}
             </Button>
           </div>
         </div>
@@ -197,28 +205,28 @@ export function ProgressPanel({
             role="alert"
             className="mt-3 rounded-xl bg-danger/10 p-3 text-sm font-medium text-danger"
           >
-            {error}
+            <TX text={error} />
           </p>
         )}
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stat("Avance medio", `${summary.avgPct}%`, "text-brand")}
+          {stat(t("p.avg"), `${summary.avgPct}%`, "text-brand")}
           {stat(
-            "Estrellas",
+            t("p.starsLabel"),
             `${summary.totalStars}/${summary.maxStars}`,
             "text-warn",
           )}
           {stat(
-            "Activos esta semana",
+            t("p.activeWeek"),
             `${summary.activeWeek}/${summary.students}`,
           )}
-          {stat("Sin empezar", String(summary.notStarted))}
+          {stat(t("p.notStarted"), String(summary.notStarted))}
         </div>
       </Card>
 
       {needHelp.length > 0 && (
         <Card className="border-2 border-warn/60">
           <h3 className="font-bold">
-            🙋 Conviene acercarse ({needHelp.length})
+            {t("p.approach", { n: needHelp.length })}
           </h3>
           <ul className="mt-2 divide-y divide-border">
             {needHelp.map((r) => (
@@ -233,7 +241,7 @@ export function ProgressPanel({
                 >
                   {r.name}
                 </button>
-                <span className="text-muted">{r.help}</span>
+                <span className="text-muted"><TX text={r.help ?? ""} /></span>
               </li>
             ))}
           </ul>
@@ -241,21 +249,21 @@ export function ProgressPanel({
       )}
 
       <Card className="overflow-x-auto">
-        <h3 className="mb-2 font-bold">Estrellas por reto</h3>
+        <h3 className="mb-2 font-bold">{t("p.starsPerChallenge")}</h3>
         <table className="w-full min-w-[560px] border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th className="sticky left-0 bg-surface p-2 text-left">Alumno</th>
+              <th className="sticky left-0 bg-surface p-2 text-left">{t("p.student")}</th>
               {CATALOG.map((c) => (
                 <th
                   key={cellKey(c.level, c.challenge)}
-                  title={c.title}
+                  title={challengeTitle(t, c.level, c.challenge, c.title)}
                   className="p-1 text-center font-mono text-xs text-muted"
                 >
                   {c.level}-{c.challenge}
                 </th>
               ))}
-              <th className="p-2 text-right">Total</th>
+              <th className="p-2 text-right">{t("p.total")}</th>
             </tr>
           </thead>
           <tbody>
@@ -278,14 +286,14 @@ export function ProgressPanel({
                 {CATALOG.map((c) => {
                   const cell = r.cells[cellKey(c.level, c.challenge)];
                   const label = cell.done
-                    ? `${cell.stars} estrellas`
+                    ? t("p.cellStars", { n: cell.stars })
                     : cell.failures
-                      ? `${cell.failures} fallos, sin superar`
-                      : "sin jugar";
+                      ? t("p.cellFails", { n: cell.failures })
+                      : t("p.cellNone");
                   return (
                     <td
                       key={cellKey(c.level, c.challenge)}
-                      title={`${c.title}: ${label}`}
+                      title={`${challengeTitle(t, c.level, c.challenge, c.title)}: ${label}`}
                       className="p-1 text-center"
                     >
                       <span
@@ -317,8 +325,7 @@ export function ProgressPanel({
           </tbody>
         </table>
         <p className="mt-2 text-xs text-muted">
-          ★ estrellas logradas · ✕ intentos fallidos en un reto sin superar · ·
-          sin jugar
+          {t("p.legend")}
         </p>
       </Card>
 
@@ -348,6 +355,8 @@ function StudentDetail({
   now: Date;
   onClose: () => void;
 }) {
+  const t = useT();
+  const lang = useLang();
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-3">
@@ -355,17 +364,21 @@ function StudentDetail({
         <div className="flex-1">
           <h3 className="text-lg font-extrabold">{r.name}</h3>
           <p className="text-sm text-muted">
-            Última actividad: {activityLabel(r.lastActivity, now)} · Racha:{" "}
-            {r.streak} {r.streak === 1 ? "día" : "días"} · 🪙 {r.coins}
+            {t("p.lastActivity", {
+              when: activityLabel(r.lastActivity, now, lang),
+              streak: r.streak,
+              days: r.streak === 1 ? t("p.day") : t("p.days"),
+              coins: r.coins,
+            })}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
-          Cerrar
+          {t("p.close")}
         </Button>
       </div>
       {r.help && (
         <p className="mt-3 rounded-xl bg-warn/15 p-2 text-sm font-medium">
-          🙋 {r.help}
+          🙋 <TX text={r.help} />
         </p>
       )}
 
@@ -379,11 +392,10 @@ function StudentDetail({
         <div className="h-full bg-brand" style={{ width: `${r.pct}%` }} />
       </div>
       <p className="mt-1 text-sm text-muted">
-        {r.completed} de {r.total} retos · {r.stars}/{r.maxStars} estrellas ·{" "}
-        {r.failures} intentos fallidos
+        {t("p.summary", { done: r.completed, total: r.total, stars: r.stars, max: r.maxStars, fails: r.failures })}
       </p>
 
-      <h4 className="mt-4 font-bold">Retos</h4>
+      <h4 className="mt-4 font-bold">{t("p.challenges")}</h4>
       <ul className="divide-y divide-border text-sm">
         {CATALOG.map((c) => {
           const cell = r.cells[cellKey(c.level, c.challenge)];
@@ -395,35 +407,35 @@ function StudentDetail({
               <span className="w-10 font-mono text-xs text-muted">
                 {c.level}-{c.challenge}
               </span>
-              <span className="min-w-[8rem] flex-1">{c.title}</span>
+              <span className="min-w-[8rem] flex-1">{challengeTitle(t, c.level, c.challenge, c.title)}</span>
               {cell.done ? (
                 <Stars n={cell.stars} />
               ) : (
                 <span className="text-muted">
-                  {cell.failures ? "sin superar" : "sin jugar"}
+                  {cell.failures ? t("p.notPassed") : t("p.cellNone")}
                 </span>
               )}
               <span className="w-28 text-right text-xs text-muted">
                 {cell.done && cell.blocks != null
-                  ? `${cell.blocks}/${c.par} bloques · `
+                  ? t("p.blocksOf", { n: cell.blocks, par: c.par })
                   : ""}
-                {cell.failures ? `${cell.failures} fallos` : ""}
+                {cell.failures ? t("p.failsN", { n: cell.failures }) : ""}
               </span>
             </li>
           );
         })}
       </ul>
 
-      <h4 className="mt-4 font-bold">Monedas</h4>
+      <h4 className="mt-4 font-bold">{t("p.coinsTitle")}</h4>
       {ledger === null ? (
-        <p className="text-sm text-muted">Cargando…</p>
+        <p className="text-sm text-muted">{t("t.loading")}</p>
       ) : ledger.length === 0 ? (
-        <p className="text-sm text-muted">Sin movimientos todavía.</p>
+        <p className="text-sm text-muted">{t("p.noMoves")}</p>
       ) : (
         <ul className="divide-y divide-border text-sm">
           {ledger.map((l, i) => (
             <li key={i} className="flex justify-between gap-3 py-1">
-              <span>{reasonLabel(l.reason)}</span>
+              <span>{reasonLabel(l.reason, t)}</span>
               <span
                 className={`font-bold ${l.delta >= 0 ? "text-success" : "text-danger"}`}
               >
@@ -431,7 +443,7 @@ function StudentDetail({
                 {l.delta}
               </span>
               <span className="w-20 text-right text-xs text-muted">
-                {activityLabel(new Date(l.created_at), now)}
+                {activityLabel(new Date(l.created_at), now, lang)}
               </span>
             </li>
           ))}

@@ -6,6 +6,8 @@ import type {
   FnName,
   Turn,
 } from "@/engine/types";
+import { getLang, translate, type Vars } from "@/i18n";
+import { canonicalMap, NAMES, WORD_MAP, type Api } from "@/lib/code-names";
 
 /** Lee el código que escribe el alumno (JavaScript o Python sencillos) y lo convierte en bloques del juego. */
 export type Lang = "js" | "python";
@@ -22,37 +24,23 @@ class ParseError extends Error {
   }
 }
 
-const NAMES = {
-  js: {
-    move: "avanzar",
-    left: "girarIzquierda",
-    right: "girarDerecha",
-    turn: "girar",
-    atoms: {
-      hayPared: "wall",
-      hayCaminoLibre: "free",
-      hayMoneda: "coin",
-      esLaMeta: "goal",
-    } as Record<string, AtomKind>,
-  },
-  python: {
-    move: "avanzar",
-    left: "girar_izquierda",
-    right: "girar_derecha",
-    turn: "girar",
-    atoms: {
-      hay_pared: "wall",
-      hay_camino_libre: "free",
-      hay_moneda: "coin",
-      es_la_meta: "goal",
-    } as Record<string, AtomKind>,
-  },
+/** Idioma de los nombres que se muestran en los mensajes (el analizador entiende los dos siempre). */
+let api: Api = "es";
+const msg = (key: string, vars?: Vars) => translate(api, key, vars);
+const nm = (lang: Lang) => NAMES[lang][api];
+/** Nombres canónicos (español) que usa el analizador por dentro. */
+const ES_JS = NAMES.js.es;
+const ES_PY = NAMES.python.es;
+const ATOMS = {
+  js: Object.fromEntries((Object.keys(ES_JS.atoms) as AtomKind[]).map((k) => [ES_JS.atoms[k], k])) as Record<string, AtomKind>,
+  python: Object.fromEntries((Object.keys(ES_PY.atoms) as AtomKind[]).map((k) => [ES_PY.atoms[k], k])) as Record<string, AtomKind>,
 };
 const TURN_WORD: Record<string, Turn> = {
   izquierda: "L",
   derecha: "R",
   recto: "S",
 };
+const CANON = { js: canonicalMap("js"), python: canonicalMap("python") };
 
 function distance(a: string, b: string): number {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [
@@ -74,8 +62,8 @@ function unknown(line: number, word: string, known: string[]): ParseError {
   const near = known
     .map((k) => ({ k, d: distance(word.toLowerCase(), k.toLowerCase()) }))
     .sort((a, b) => a.d - b.d)[0];
-  const hint = near && near.d <= 3 ? ` ¿Quisiste decir «${near.k}»?` : "";
-  return new ParseError(line, `No conozco «${word}».${hint}`);
+  const hint = near && near.d <= 3 ? " " + msg("parse.didYouMean", { near: near.k }) : "";
+  return new ParseError(line, msg("parse.unknown", { word }) + hint);
 }
 
 type DistributiveOmit<T> = T extends unknown ? Omit<T, "id"> : never;
@@ -94,46 +82,44 @@ class Builder {
 
 function repeatCount(line: number, n: number): number {
   if (!Number.isInteger(n) || n < 1 || n > 9)
-    throw new ParseError(line, "Repetir va de 1 a 9 veces.");
+    throw new ParseError(line, msg("parse.repeatRange"));
   return n;
 }
 
 function pasosValue(line: number, n: number, max = 9, min = 0): number {
   if (!Number.isInteger(n) || n < min || n > max)
-    throw new ParseError(line, `Aquí el número va de ${min} a ${max}.`);
+    throw new ParseError(line, msg("parse.numberRange", { min, max }));
   return n;
 }
 
 function turnList(line: number, words: string[]): Turn[] {
   if (words.length === 0)
-    throw new ParseError(line, "La lista de giros no puede estar vacía.");
+    throw new ParseError(line, msg("parse.listEmpty"));
   if (words.length > 12)
-    throw new ParseError(line, "La lista admite hasta 12 giros.");
+    throw new ParseError(line, msg("parse.listMax"));
   return words.map((w) => {
     const t = TURN_WORD[w];
     if (!t)
       throw new ParseError(
         line,
-        `El giro «${w}» no existe. Usa "izquierda", "derecha" o "recto".`,
+        msg("parse.turnUnknown", {
+          w,
+          left: NAMES.js[api].words.L,
+          right: NAMES.js[api].words.R,
+          straight: NAMES.js[api].words.S,
+        }),
       );
     return t;
   });
 }
 
 const known = (lang: Lang) => {
-  const n = NAMES[lang];
-  return [
-    n.move,
-    n.left,
-    n.right,
-    n.turn,
-    ...Object.keys(n.atoms),
-    ...(lang === "js" ? ["bloqueA", "bloqueB"] : ["bloque_a", "bloque_b"]),
-  ];
+  const n = nm(lang);
+  return [n.move, n.left, n.right, n.turn, ...Object.values(n.atoms), n.block("A"), n.block("B")];
 };
 
 // ───────────────────────────── JavaScript ─────────────────────────────
-type Tok = { t: "id" | "num" | "str" | "p"; v: string; line: number };
+type Tok = { t: "id" | "num" | "str" | "p"; v: string; line: number; raw?: string };
 
 function tokenizeJs(src: string): Tok[] {
   const toks: Tok[] = [];
@@ -157,7 +143,8 @@ function tokenizeJs(src: string): Tok[] {
     } else if (/[A-Za-z_]/.test(c)) {
       let j = i;
       while (j < src.length && /\w/.test(src[j])) j += 1;
-      toks.push({ t: "id", v: src.slice(i, j), line });
+      const raw = src.slice(i, j);
+      toks.push({ t: "id", v: CANON.js[raw] ?? raw, line, raw });
       i = j;
     } else if (/\d/.test(c)) {
       let j = i;
@@ -168,8 +155,9 @@ function tokenizeJs(src: string): Tok[] {
       let j = i + 1;
       while (j < src.length && src[j] !== c && src[j] !== "\n") j += 1;
       if (src[j] !== c)
-        throw new ParseError(line, "Falta cerrar las comillas del texto.");
-      toks.push({ t: "str", v: src.slice(i + 1, j), line });
+        throw new ParseError(line, msg("parse.quote"));
+      const word = src.slice(i + 1, j);
+      toks.push({ t: "str", v: WORD_MAP[word] ?? word, line });
       i = j + 1;
     } else {
       const two = src.slice(i, i + 2);
@@ -179,7 +167,7 @@ function tokenizeJs(src: string): Tok[] {
       } else if ("(){}[];,=<>+-*!".includes(c)) {
         toks.push({ t: "p", v: c, line });
         i += 1;
-      } else throw new ParseError(line, `No entiendo el símbolo «${c}».`);
+      } else throw new ParseError(line, msg("parse.symbol", { c }));
     }
   }
   return toks;
@@ -197,10 +185,7 @@ function parseJs(src: string): {
   const next = () => {
     const t = toks[p];
     if (!t)
-      throw new ParseError(
-        lastLine(),
-        "El programa termina antes de tiempo. ¿Falta cerrar una llave }?",
-      );
+      throw new ParseError(lastLine(), msg("parse.eof"));
     p += 1;
     return t;
   };
@@ -210,7 +195,7 @@ function parseJs(src: string): {
     if (!t || t.t !== "p" || t.v !== v)
       throw new ParseError(
         t?.line ?? lastLine(),
-        `Falta «${v}»${why ? " " + why : ""}.`,
+        msg("parse.missing", { v, why: why ? " " + why : "" }),
       );
     p += 1;
   };
@@ -226,30 +211,30 @@ function parseJs(src: string): {
     }
     const t = next();
     if (t.t !== "id")
-      throw new ParseError(t.line, "Aquí va una pregunta, como hayPared().");
-    const kind = NAMES.js.atoms[t.v];
-    if (!kind) throw unknown(t.line, t.v, Object.keys(NAMES.js.atoms));
+      throw new ParseError(t.line, msg("parse.askExample", { example: `${nm("js").atoms.wall}()` }));
+    const kind = ATOMS.js[t.v];
+    if (!kind) throw unknown(t.line, t.raw ?? t.v, Object.values(nm("js").atoms));
     expectP("(");
     expectP(")");
     return { kind, not };
   }
   function cond(): CondExpr {
-    expectP("(", "antes de la condición");
+    expectP("(", msg("parse.why.beforeCond"));
     const a = atom();
     let res: CondExpr = { a };
     if (isP("&&") || isP("||")) {
       const op = next().v === "&&" ? "and" : "or";
       res = { a, op, b: atom() };
     }
-    expectP(")", "al terminar la condición");
+    expectP(")", msg("parse.why.afterCond"));
     return res;
   }
   function body(): Block[] {
-    expectP("{", "para abrir el bloque");
+    expectP("{", msg("parse.why.openBlock"));
     const out: Block[] = [];
     while (!isP("}")) {
       if (!peek())
-        throw new ParseError(lastLine(), "Falta cerrar una llave }.");
+        throw new ParseError(lastLine(), msg("parse.closeBrace"));
       out.push(...stmt());
     }
     expectP("}");
@@ -259,7 +244,7 @@ function parseJs(src: string): {
     const t = next();
     if (t.t === "p" && t.v === ";") return [];
     if (t.t !== "id")
-      throw new ParseError(t.line, `No entiendo «${t.v}» aquí.`);
+      throw new ParseError(t.line, msg("parse.notHere", { v: t.raw ?? t.v }));
     const line = t.line;
     switch (t.v) {
       case "function": {
@@ -268,7 +253,7 @@ function parseJs(src: string): {
         if (!m)
           throw new ParseError(
             name.line,
-            "Tus bloques se llaman bloqueA y bloqueB.",
+            msg("parse.jsBlocks", { a: nm("js").block("A"), b: nm("js").block("B") }),
           );
         expectP("(");
         expectP(")");
@@ -282,7 +267,7 @@ function parseJs(src: string): {
         if (v.v === "pasos") {
           const n = next();
           if (n.t !== "num")
-            throw new ParseError(n.line, "«pasos» vale un número.");
+            throw new ParseError(n.line, msg("parse.stepsNumber", { steps: nm("js").steps }));
           optSemi();
           const value = pasosValue(n.line, Number(n.v));
           return value === 1 ? [] : [b.make(line, { type: "setvar", value })];
@@ -295,7 +280,7 @@ function parseJs(src: string): {
             if (s.t !== "str")
               throw new ParseError(
                 s.line,
-                'Cada giro va entre comillas, como "derecha".',
+                msg("parse.turnQuotes", { example: `"${nm("js").words.R}"` }),
               );
             words.push(s.v);
             if (isP(",")) p += 1;
@@ -306,7 +291,7 @@ function parseJs(src: string): {
         }
         throw new ParseError(
           v.line,
-          "Solo puedes crear las variables «pasos» y «giros».",
+          msg("parse.onlyVars", { steps: nm("js").steps, turns: nm("js").turns }),
         );
       }
       case "for": {
@@ -319,16 +304,13 @@ function parseJs(src: string): {
           if (of.v !== "of" || lst.v !== "giros")
             throw new ParseError(
               line,
-              "Para recorrer la lista escribe: for (const giro of giros)",
+              msg("parse.forEachJs", { item: nm("js").item, turns: nm("js").turns }),
             );
           expectP(")");
           return [b.make(line, { type: "foreach", body: body() })];
         }
         if (kw.v !== "let")
-          throw new ParseError(
-            line,
-            "Un bucle va así: for (let i = 0; i < 3; i++) { … }",
-          );
+          throw new ParseError(line, msg("parse.loopJs"));
         const v = next().v;
         expectP("=");
         const zero = next();
@@ -341,10 +323,7 @@ function parseJs(src: string): {
         expectP("++");
         expectP(")");
         if (zero.v !== "0" || v2.v !== v || v3.v !== v || n.t !== "num")
-          throw new ParseError(
-            line,
-            "Un bucle va así: for (let i = 0; i < 3; i++) { … }",
-          );
+          throw new ParseError(line, msg("parse.loopJs"));
         const times = repeatCount(n.line, Number(n.v));
         const inner = body();
         return times === 1
@@ -370,12 +349,12 @@ function parseJs(src: string): {
         if (first.v !== "pasos")
           throw new ParseError(
             first.line,
-            "Escribe, por ejemplo: pasos = pasos + 1",
+            msg("parse.stepsExample", { steps: nm("js").steps }),
           );
         const op = next();
         const n = next();
         if (op.t !== "p" || !["+", "-", "*"].includes(op.v) || n.t !== "num")
-          throw new ParseError(line, "Escribe, por ejemplo: pasos = pasos + 1");
+          throw new ParseError(line, msg("parse.stepsExample", { steps: nm("js").steps }));
         optSemi();
         return [
           b.make(line, {
@@ -386,18 +365,18 @@ function parseJs(src: string): {
         ];
       }
       default: {
-        expectP("(", `después de ${t.v}`);
+        expectP("(", msg("parse.why.after", { name: t.raw ?? t.v }));
         let arg = "";
         if (!isP(")")) arg = next().v;
         expectP(")");
         optSemi();
-        const n = NAMES.js;
+        const n = ES_JS;
         if (t.v === n.move) {
           if (arg === "") return [b.make(line, { type: "move" })];
           if (arg === "pasos") return [b.make(line, { type: "movevar" })];
           throw new ParseError(
             line,
-            "avanzar() va vacío, o con pasos: avanzar(pasos).",
+            msg("parse.moveArgs", { move: nm("js").move, steps: nm("js").steps }),
           );
         }
         if (t.v === n.left) return [b.make(line, { type: "left" })];
@@ -416,7 +395,14 @@ function parseJs(src: string): {
 }
 
 // ────────────────────────────── Python ───────────────────────────────
-type Line = { indent: number; text: string; line: number };
+type Line = { indent: number; text: string; line: number; raw: string };
+
+/** Pasa a la forma canónica (español) los nombres escritos en inglés, sin tocar lo que va entre comillas salvo las palabras de giro. */
+function canonPy(text: string): string {
+  return text.replace(/(["'])(.*?)\1|[A-Za-z_]\w*/g, (m, q: string | undefined, inner: string | undefined) =>
+    q ? q + (WORD_MAP[inner ?? ""] ?? inner) + q : (CANON.python[m] ?? m),
+  );
+}
 
 function parsePython(src: string): {
   program: Block[];
@@ -429,8 +415,9 @@ function parsePython(src: string): {
     const lead = /^[ \t]*/.exec(text)![0];
     lines.push({
       indent: lead.replace(/\t/g, "    ").length,
-      text: text.trim(),
+      text: canonPy(text.trim()),
       line: i + 1,
+      raw: text.trim(),
     });
   });
   const b = new Builder();
@@ -439,10 +426,7 @@ function parsePython(src: string): {
   function cond(line: number, text: string): CondExpr {
     const parts = text.split(/\s+(and|or)\s+/);
     if (parts.length !== 1 && parts.length !== 3)
-      throw new ParseError(
-        line,
-        "Usa como mucho dos preguntas unidas con and / or.",
-      );
+      throw new ParseError(line, msg("parse.maxTwo"));
     const atom = (s: string): Atom => {
       let t = s.trim();
       let not = false;
@@ -452,9 +436,9 @@ function parsePython(src: string): {
       }
       const m = /^(\w+)\s*\(\s*\)$/.exec(t);
       if (!m)
-        throw new ParseError(line, "Aquí va una pregunta, como hay_pared().");
-      const kind = NAMES.python.atoms[m[1]];
-      if (!kind) throw unknown(line, m[1], Object.keys(NAMES.python.atoms));
+        throw new ParseError(line, msg("parse.askExample", { example: `${nm("python").atoms.wall}()` }));
+      const kind = ATOMS.python[m[1]];
+      if (!kind) throw unknown(line, m[1], Object.values(nm("python").atoms));
       return { kind, not };
     };
     if (parts.length === 1) return { a: atom(parts[0]) };
@@ -468,10 +452,7 @@ function parsePython(src: string): {
   function block(indent: number, header: Line): Block[] {
     const first = lines[p];
     if (!first || first.indent <= indent)
-      throw new ParseError(
-        header.line,
-        "Después de «:» va una línea con sangría (cuatro espacios).",
-      );
+      throw new ParseError(header.line, msg("parse.indentAfter"));
     return seq(first.indent);
   }
 
@@ -480,10 +461,7 @@ function parsePython(src: string): {
     while (p < lines.length && lines[p].indent >= indent) {
       const l = lines[p];
       if (l.indent > indent)
-        throw new ParseError(
-          l.line,
-          "Esta línea tiene más sangría de la que toca.",
-        );
+        throw new ParseError(l.line, msg("parse.moreIndent"));
       p += 1;
       out.push(...stmt(l));
     }
@@ -505,7 +483,7 @@ function parsePython(src: string): {
     if (/^def\s/.test(text))
       throw new ParseError(
         line,
-        "Tus bloques se llaman bloque_a y bloque_b: def bloque_a():",
+        msg("parse.pyBlocks", { a: nm("python").block("A"), b: nm("python").block("B") }),
       );
     if ((m = /^for\s+giro\s+in\s+giros\s*:$/.exec(text)))
       return [b.make(line, { type: "foreach", body: block(l.indent, l) })];
@@ -519,7 +497,7 @@ function parsePython(src: string): {
     if (/^for\s/.test(text))
       throw new ParseError(
         line,
-        "Un bucle va así: for _ in range(3):  o  for giro in giros:",
+        msg("parse.loopPy", { item: nm("python").item, turns: nm("python").turns }),
       );
     if ((m = /^while\s+(.+):$/.exec(text)))
       return [
@@ -550,7 +528,7 @@ function parsePython(src: string): {
         }),
       ];
     if (/^pasos\s*=/.test(text))
-      throw new ParseError(line, "Escribe, por ejemplo: pasos = pasos + 1");
+      throw new ParseError(line, msg("parse.stepsExample", { steps: nm("python").steps }));
     if ((m = /^giros\s*=\s*\[(.*)\]$/.exec(text))) {
       const words = m[1]
         .split(",")
@@ -561,7 +539,7 @@ function parsePython(src: string): {
           if (!q)
             throw new ParseError(
               line,
-              'Cada giro va entre comillas, como "derecha".',
+              msg("parse.turnQuotes", { example: `"${nm("python").words.R}"` }),
             );
           return q[2];
         });
@@ -569,13 +547,13 @@ function parsePython(src: string): {
     }
     if ((m = /^(\w+)\s*\(\s*(\w*)\s*\)$/.exec(text))) {
       const [, fn, arg] = m;
-      const n = NAMES.python;
+      const n = ES_PY;
       if (fn === n.move) {
         if (arg === "") return [b.make(line, { type: "move" })];
         if (arg === "pasos") return [b.make(line, { type: "movevar" })];
         throw new ParseError(
           line,
-          "avanzar() va vacío, o con pasos: avanzar(pasos).",
+          msg("parse.moveArgs", { move: nm("python").move, steps: nm("python").steps }),
         );
       }
       if (fn === n.left) return [b.make(line, { type: "left" })];
@@ -588,19 +566,17 @@ function parsePython(src: string): {
         ];
       throw unknown(line, fn, known("python"));
     }
-    throw new ParseError(line, `No entiendo esta línea: «${text}».`);
+    throw new ParseError(line, msg("parse.line", { text: l.raw }));
   }
 
   const program = seq(lines[0]?.indent ?? 0);
   if (p < lines.length)
-    throw new ParseError(
-      lines[p].line,
-      "Esta línea tiene menos sangría de la que toca.",
-    );
+    throw new ParseError(lines[p].line, msg("parse.lessIndent"));
   return { program, lineOf: b.lineOf };
 }
 
-export function parseCode(src: string, lang: Lang): ParseResult {
+export function parseCode(src: string, lang: Lang, language: Api = getLang()): ParseResult {
+  api = language;
   try {
     const r = lang === "js" ? parseJs(src) : parsePython(src);
     return { ok: true, ...r };

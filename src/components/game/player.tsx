@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { parseLevel, run } from "@/engine/interpreter";
-import type { Block, FailReason, Level, RunResult } from "@/engine/types";
+import type { Block, Level, RunResult } from "@/engine/types";
 import { saveResult } from "@/lib/progress";
 import { queuePending, removePending } from "@/lib/pending-results";
 import { sfx } from "@/lib/audio";
@@ -24,26 +24,20 @@ import { parseCode, type Lang } from "@/lib/code-parser";
 import { toCode } from "@/lib/codegen";
 import type { FuzzyVariant } from "./fuzzy";
 import { Workspace } from "./workspace";
-
-const FAIL_TEXT: Record<FailReason, string> = {
-  wall: "¡Ups! Chocaste con una pared. Revisa tus giros.",
-  "step-limit":
-    "Tu programa da demasiadas vueltas. Prueba con menos repeticiones.",
-  "not-at-goal": "El robot se detuvo antes de llegar a la bandera.",
-  empty: "Primero arma un programa con los bloques.",
-  tests:
-    "Tu programa llega a la bandera aquí, pero falla en otra prueba. Haz que funcione para cualquier camino.",
-};
+import { challengeHint, TX, useLang, useT } from "@/i18n";
+import { starterIn } from "@/lib/code-names";
 
 type Props = { level: Level; total: number };
 
 export function Player({ level, total }: Props) {
+  const t = useT();
+  const api = useLang();
   const [program, setProgram] = useState<Block[]>([]);
   // Retos de código: el alumno escribe en JavaScript o Python
   const codeMode = level.mode === "code";
   const [lang, setLang] = useState<Lang>("js");
   const [wide, setWide] = useState(false);
-  const [code, setCode] = useState(level.starter?.js ?? "");
+  const [code, setCode] = useState(() => starterIn(level.starter?.js ?? "", "js", api));
   const [codeError, setCodeError] = useState<{
     line: number;
     message: string;
@@ -191,13 +185,29 @@ export function Player({ level, total }: Props) {
     setSaveMessage(null);
   }
 
+  // Al cambiar el idioma de la interfaz, el código del alumno se muestra con los nombres del otro idioma
+  const prevApi = useRef(api);
+  useEffect(() => {
+    const before = prevApi.current;
+    if (before === api) return;
+    prevApi.current = api;
+    if (!codeMode) return;
+    setCodeError(null);
+    setCode((cur) => {
+      const original = level.starter?.[lang === "js" ? "js" : "python"] ?? "";
+      if (cur === starterIn(original, lang, before)) return starterIn(original, lang, api);
+      const parsed = parseCode(cur, lang, before);
+      return parsed.ok && parsed.program.length ? toCode(parsed.program, lang, api) : cur;
+    });
+  }, [api, codeMode, lang, level]);
+
   function changeLang(next: Lang) {
     // Si el código actual se entiende, se traduce al otro lenguaje; si no, se vuelve al código inicial
-    const parsed = parseCode(code, lang);
+    const parsed = parseCode(code, lang, api);
     setCode(
       parsed.ok && parsed.program.length
-        ? toCode(parsed.program, next)
-        : (level.starter?.[next === "js" ? "js" : "python"] ?? ""),
+        ? toCode(parsed.program, next, api)
+        : starterIn(level.starter?.[next === "js" ? "js" : "python"] ?? "", next, api),
     );
     setCodeError(null);
     setLang(next);
@@ -206,7 +216,7 @@ export function Player({ level, total }: Props) {
   function execute() {
     let prog = program;
     if (codeMode) {
-      const parsed = parseCode(code, lang);
+      const parsed = parseCode(code, lang, api);
       if (!parsed.ok) {
         setCodeError({ line: parsed.line, message: parsed.message });
         return;
@@ -244,7 +254,7 @@ export function Player({ level, total }: Props) {
     >
       <div className="flex min-h-0 flex-col gap-3">
         <section
-          aria-label="Escenario"
+          aria-label={t("play.stage")}
           className="relative h-[62vw] min-h-[260px] lg:h-auto lg:min-h-0 lg:flex-1"
         >
           <Board
@@ -261,7 +271,7 @@ export function Player({ level, total }: Props) {
               role="note"
               className="absolute left-1/2 top-3 z-10 max-w-[90%] -translate-x-1/2 rounded-xl bg-white/95 px-4 py-2 text-center text-sm font-semibold text-[#0b1440] shadow-lg"
             >
-              💡 {level.hint}
+              💡 {challengeHint(t, level.level, level.challenge, level.hint)}
             </p>
           )}
 
@@ -275,17 +285,16 @@ export function Player({ level, total }: Props) {
                   <>
                     <Burst />
                     <p className="text-grad text-3xl font-extrabold">
-                      ¡Lo lograste!
+                      {t("play.win")}
                     </p>
                     <PopStars earned={result.stars} />
                     <ul className="mt-2 text-sm text-muted">
                       <li>
-                        Usaste {result.blocks} bloques (lo mejor: {level.par})
+                        {t("play.blocksUsed", { n: result.blocks, par: level.par })}
                       </li>
                       {result.coinsTotal > 0 && (
                         <li>
-                          Monedas: {result.coinsCollected} de{" "}
-                          {result.coinsTotal}
+                          {t("play.coins", { got: result.coinsCollected, total: result.coinsTotal })}
                         </li>
                       )}
                     </ul>
@@ -303,37 +312,35 @@ export function Player({ level, total }: Props) {
                     />
                     {ready && wallet && !isStudent && (
                       <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
-                        Estás probando como docente: aquí no se guardan
-                        estrellas ni monedas.
+                        {t("play.teacherNote")}
                       </p>
                     )}
                     {ready && !wallet && (
                       <p className="mt-3 rounded-xl bg-surface-2 p-3 text-sm text-muted">
-                        Entra con el código de tu clase para guardar tu progreso
-                        y ganar monedas 🪙
+                        {t("play.guestNote")}
                       </p>
                     )}
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       <Button variant="outline" onClick={reset}>
-                        Mejorar
+                        {t("play.improve")}
                       </Button>
                       {next ? (
                         <ButtonLink href={`/nivel/${level.level}/${next}`}>
-                          Siguiente reto →
+                          {t("play.next")}
                         </ButtonLink>
                       ) : (
-                        <ButtonLink href="/mapa">Volver al mapa</ButtonLink>
+                        <ButtonLink href="/mapa">{t("play.toMap")}</ButtonLink>
                       )}
                     </div>
                   </>
                 ) : (
                   <>
                     <p className="text-lg font-bold">
-                      {FAIL_TEXT[result.reason ?? "not-at-goal"]}
+                      {t(`play.fail.${result.reason ?? "not-at-goal"}`)}
                     </p>
                     {result.tests && <TestList tests={result.tests} />}
                     <Button className="mt-3" onClick={reset}>
-                      Intentar otra vez
+                      {t("play.retry")}
                     </Button>
                   </>
                 )}
@@ -344,11 +351,11 @@ export function Player({ level, total }: Props) {
         <div className="flex shrink-0 flex-wrap items-center justify-center gap-2">
           {editing ? (
             <Button size="lg" variant="go" onClick={execute}>
-              ▶ Ejecutar
+              {t("play.run")}
             </Button>
           ) : (
             <Button size="lg" variant="secondary" onClick={reset}>
-              ↺ Editar
+              {t("play.edit")}
             </Button>
           )}
           <Button
@@ -357,7 +364,7 @@ export function Player({ level, total }: Props) {
             onClick={() => setShowHint((v) => !v)}
             aria-expanded={showHint}
           >
-            💡 Pista
+            {t("play.hint")}
           </Button>
           <Button
             variant="outline"
@@ -365,14 +372,14 @@ export function Player({ level, total }: Props) {
             className="hidden lg:inline-flex"
             onClick={() => setWide((v) => !v)}
             aria-pressed={wide}
-            title="Hace más ancha la columna del programa"
+            title={t("play.widenTitle")}
           >
-            {wide ? "⇥ Reducir" : "⇤ Ampliar programa"}
+            {wide ? t("play.narrow") : t("play.widen")}
           </Button>
         </div>
       </div>
 
-      <aside aria-label="Programa" className="flex min-h-0 flex-col gap-3">
+      <aside aria-label={t("play.program")} className="flex min-h-0 flex-col gap-3">
         {codeMode ? (
           <div className="min-h-0 flex-1 overflow-y-auto">
             <CodeEditor
@@ -402,17 +409,18 @@ export function Player({ level, total }: Props) {
 }
 
 function TestList({ tests }: { tests: { passed: boolean }[] }) {
+  const t = useT();
   return (
     <ul
       className="mt-2 flex flex-wrap justify-center gap-2 text-sm font-bold"
-      aria-label="Pruebas automáticas"
+      aria-label={t("play.tests")}
     >
-      {tests.map((t, i) => (
+      {tests.map((test, i) => (
         <li
           key={i}
-          className={`rounded-full px-3 py-1 ${t.passed ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}
+          className={`rounded-full px-3 py-1 ${test.passed ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}
         >
-          {t.passed ? "✔" : "✘"} Prueba {i + 1}
+          {test.passed ? "✔" : "✘"} {t("play.test", { n: i + 1 })}
         </li>
       ))}
     </ul>
@@ -420,12 +428,13 @@ function TestList({ tests }: { tests: { passed: boolean }[] }) {
 }
 
 function RewardPanel({ reward }: { reward: Reward }) {
+  const t = useT();
   const total = reward.coins + reward.bonus;
   return (
     <div
       className="mt-4 rounded-2xl bg-warn/15 p-4"
       role="status"
-      aria-label={`Ganaste ${total} monedas`}
+      aria-label={t("play.reward.aria", { n: total })}
     >
       <p className="text-3xl font-extrabold text-warn">
         <span aria-hidden className="coin-drop">
@@ -434,30 +443,30 @@ function RewardPanel({ reward }: { reward: Reward }) {
         +{total}
       </p>
       <ul className="mt-1 text-sm text-fg/80">
-        {reward.first && <li>Reto superado: +10</li>}
+        {reward.first && <li>{t("play.reward.first")}</li>}
         {reward.starsAfter > reward.starsBefore && (
           <li>
-            Estrellas nuevas: +{(reward.starsAfter - reward.starsBefore) * 5}
+            {t("play.reward.stars", { n: (reward.starsAfter - reward.starsBefore) * 5 })}
           </li>
         )}
         {reward.bonus > 0 && (
           <li>
-            Bono del día (racha de {reward.streak}): +{reward.bonus}
+            {t("play.reward.bonus", { streak: reward.streak, n: reward.bonus })}
           </li>
         )}
         {total === 0 && (
           <li>
-            Ya tenías este reto. Consigue más estrellas para ganar más monedas.
+            {t("play.reward.already")}
           </li>
         )}
       </ul>
       <p className="mt-2 text-sm font-semibold">
-        Tienes {reward.balance} monedas ·{" "}
+        {t("play.reward.balance", { n: reward.balance })}{" "}
         <Link
           href="/tienda"
           className="text-brand underline-offset-2 hover:underline"
         >
-          Ir a la tienda
+          {t("play.reward.shop")}
         </Link>
       </p>
     </div>
@@ -473,36 +482,33 @@ function SaveStatus({
   message: string | null;
   onRetry: () => void;
 }) {
+  const t = useT();
   if (state === "idle") return null;
   if (state === "saving")
     return (
       <p role="status" className="mt-3 text-sm font-medium text-muted">
-        Guardando tus estrellas…
+        {t("save.saving")}
       </p>
     );
   if (state === "saved")
     return (
       <p role="status" className="mt-3 text-sm font-bold text-success">
-        ✔ Estrellas guardadas
+        {t("save.saved")}
       </p>
     );
   return (
     <div role="alert" className="mt-3 rounded-xl bg-warn/20 p-3 text-sm">
       <p className="font-bold">
-        {state === "queued"
-          ? "No pudimos guardar tus estrellas ahora."
-          : "No se pudo guardar tu resultado."}
+        {state === "queued" ? t("save.queuedTitle") : t("save.errorTitle")}
       </p>
       <p className="mt-1 text-fg/80">
-        {state === "queued"
-          ? "No te preocupes: las intentaremos guardar solas en cuanto haya conexión. También puedes probar ahora."
-          : message}
+        {state === "queued" ? t("save.queuedBody") : message && <TX text={message} />}
       </p>
       {state === "queued" && message && (
-        <p className="mt-1 text-xs text-muted">({message})</p>
+        <p className="mt-1 text-xs text-muted">(<TX text={message} />)</p>
       )}
       <Button size="sm" className="mt-2" onClick={onRetry}>
-        Reintentar ahora
+        {t("save.retryNow")}
       </Button>
     </div>
   );

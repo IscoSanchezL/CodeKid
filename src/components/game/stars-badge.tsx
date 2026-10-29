@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { loadProgress, progressKey } from "@/lib/progress";
+import { useT } from "@/i18n";
 
 export function StarsBadge({ level, challenge }: { level: number; challenge: number }) {
   const [stars, setStars] = useState(0);
+  const t = useT();
 
   useEffect(() => {
     let alive = true;
@@ -17,7 +19,7 @@ export function StarsBadge({ level, challenge }: { level: number; challenge: num
   }, [level, challenge]);
 
   return (
-    <span aria-label={`${stars} de 3 estrellas`} className="text-lg tracking-tight text-warn">
+    <span aria-label={t("stars.aria", { n: stars })} className="text-lg tracking-tight text-warn">
       {"★".repeat(stars)}
       <span className="opacity-25">{"★".repeat(3 - stars)}</span>
     </span>

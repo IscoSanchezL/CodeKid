@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
 import { ApiError, callClassAccess, type Student } from "@/lib/class-api";
 import { createClient } from "@/lib/supabase/client";
+import { TX, useT } from "@/i18n";
 
 type Base = { className: string; needsPassword: boolean; students: Student[] };
 type Step =
@@ -24,6 +25,7 @@ const clean = (v: string, max: number) =>
 
 export function ClassLogin() {
   const router = useRouter();
+  const t = useT();
   const [step, setStep] = useState<Step>({ name: "code" });
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -158,13 +160,13 @@ export function ClassLogin() {
   if (step.name === "code") {
     return (
       <Card>
-        <h1 className="text-2xl font-extrabold">Entra a tu clase</h1>
+        <h1 className="text-2xl font-extrabold">{t("cls.title")}</h1>
         <p className="mt-1 text-muted">
-          Escribe el código que te dio tu docente.
+          {t("cls.lead")}
         </p>
         <form onSubmit={findClass} className="mt-6 flex flex-col gap-4">
           <label className="sr-only" htmlFor="code">
-            Código de clase
+            {t("cls.codeLabel")}
           </label>
           <input
             id="code"
@@ -181,17 +183,17 @@ export function ClassLogin() {
               role="alert"
               className="text-center text-sm font-medium text-danger"
             >
-              {error}
+              <TX text={error} />
             </p>
           )}
           <Button type="submit" size="lg" disabled={busy || code.length < 4}>
-            {busy ? "Buscando…" : "Buscar mi clase"}
+            {busy ? t("cls.searching") : t("cls.search")}
           </Button>
         </form>
         <p className="mt-6 text-center text-sm text-muted">
-          ¿Eres docente o tutor?{" "}
+          {t("cls.teacherQ")}
           <Link href="/login" className="font-semibold text-brand">
-            Entra aquí
+            {t("cls.here")}
           </Link>
         </p>
       </Card>
@@ -202,11 +204,10 @@ export function ClassLogin() {
     return (
       <Card>
         <h1 className="text-2xl font-extrabold">{step.className}</h1>
-        <p className="mt-1 text-muted">¿Quién eres? Toca tu nombre.</p>
+        <p className="mt-1 text-muted">{t("cls.who")}</p>
         {step.students.length === 0 ? (
           <p className="mt-6 rounded-xl bg-surface-2 p-4 text-center text-muted">
-            Esta clase todavía no tiene alumnos. Pídele a tu docente que te
-            añada.
+            {t("cls.empty")}
           </p>
         ) : (
           <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -232,7 +233,7 @@ export function ClassLogin() {
             role="alert"
             className="mt-4 text-center text-sm font-medium text-danger"
           >
-            {error}
+            <TX text={error} />
           </p>
         )}
         <button
@@ -243,7 +244,7 @@ export function ClassLogin() {
           }}
           className="mt-6 w-full text-center text-sm font-medium text-muted hover:text-fg"
         >
-          ← Cambiar de clase
+          {t("cls.change")}
         </button>
       </Card>
     );
@@ -260,12 +261,12 @@ export function ClassLogin() {
           />
         </div>
         <h1 className="mt-2 text-2xl font-extrabold">
-          Hola, {step.student.name}
+          {t("cls.hello", { name: step.student.name })}
         </h1>
-        <p className="mt-1 text-muted">Escribe la clave de tu clase.</p>
+        <p className="mt-1 text-muted">{t("cls.askPassword")}</p>
         <form onSubmit={submitPassword} className="mt-5 flex flex-col gap-3">
           <label className="sr-only" htmlFor="class-password">
-            Clave de la clase
+            {t("cls.passwordLabel")}
           </label>
           <input
             id="class-password"
@@ -279,11 +280,11 @@ export function ClassLogin() {
           />
           {error && (
             <p role="alert" className="text-sm font-medium text-danger">
-              {error}
+              <TX text={error} />
             </p>
           )}
           <Button type="submit" size="lg" disabled={busy || !password}>
-            {busy ? "Entrando…" : step.student.hasPin ? "Siguiente" : "Entrar"}
+            {busy ? t("cls.entering") : step.student.hasPin ? t("cls.next") : t("cls.enter")}
           </Button>
         </form>
         <button
@@ -291,7 +292,7 @@ export function ClassLogin() {
           onClick={backToList}
           className="mt-5 text-sm font-medium text-muted hover:text-fg"
         >
-          ← No soy yo
+          {t("cls.notMe")}
         </button>
       </Card>
     );
@@ -307,13 +308,13 @@ export function ClassLogin() {
         />
       </div>
       <h1 className="mt-2 text-2xl font-extrabold">
-        Hola, {step.student.name}
+        {t("cls.hello", { name: step.student.name })}
       </h1>
-      <p className="mt-1 text-muted">Escribe tu PIN de 4 números.</p>
+      <p className="mt-1 text-muted">{t("cls.askPin")}</p>
       <div
         className="my-5 flex justify-center gap-3"
         role="status"
-        aria-label={`${pin.length} de 4 números escritos`}
+        aria-label={t("cls.pinAria", { n: pin.length })}
       >
         {[0, 1, 2, 3].map((i) => (
           <span
@@ -324,7 +325,7 @@ export function ClassLogin() {
       </div>
       {error && (
         <p role="alert" className="mb-3 text-sm font-medium text-danger">
-          {error}
+          <TX text={error} />
         </p>
       )}
       <div className="mx-auto grid max-w-[240px] grid-cols-3 gap-2">
@@ -346,7 +347,7 @@ export function ClassLogin() {
           size="lg"
           disabled={busy}
           onClick={() => setPin((p) => p.slice(0, -1))}
-          aria-label="Borrar"
+          aria-label={t("cls.erase")}
         >
           ⌫
         </Button>
@@ -365,7 +366,7 @@ export function ClassLogin() {
         onClick={backToList}
         className="mt-6 text-sm font-medium text-muted hover:text-fg"
       >
-        ← No soy yo
+        {t("cls.notMe")}
       </button>
     </Card>
   );

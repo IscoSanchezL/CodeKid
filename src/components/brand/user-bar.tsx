@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { FuzzyAvatar } from "@/components/game/fuzzy-avatar";
 import { useWallet } from "@/components/shop/use-wallet";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/i18n";
 
 /** Muestra quién juega, sus monedas y permite salir de la cuenta. */
 export function UserBar() {
   const router = useRouter();
   const { wallet, ready } = useWallet();
+  const t = useT();
 
   async function leave() {
     await createClient().auth.signOut();
@@ -24,7 +26,7 @@ export function UserBar() {
         href="/clase"
         className="rounded-xl bg-surface px-3 py-1.5 text-sm font-bold text-brand shadow-[0_3px_0_0_rgb(var(--border))]"
       >
-        Entrar con mi clase
+        {t("user.enterClass")}
       </Link>
     );
   }
@@ -39,7 +41,7 @@ export function UserBar() {
         <Link
           href="/tienda"
           className="btn-gloss flex items-center gap-1 rounded-full bg-gradient-to-b from-[#ffd75e] to-[#ffb800] px-3 py-1.5 font-extrabold text-[#0b1440] shadow-[0_3px_0_0_#b98600]"
-          aria-label={`${wallet.coins} monedas. Ir a la tienda`}
+          aria-label={t("user.coinsAria", { n: wallet.coins })}
         >
           <span aria-hidden>🪙</span>
           {wallet.coins}
@@ -47,13 +49,13 @@ export function UserBar() {
       )}
       {staff && (
         <Link href="/docente" className="font-semibold text-brand">
-          Panel
+          {t("user.panel")}
         </Link>
       )}
       <button
         type="button"
         onClick={leave}
-        aria-label="Salir de mi cuenta"
+        aria-label={t("user.logoutAria")}
         className="btn-gloss btn-exit flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-extrabold uppercase tracking-wide transition-transform hover:-translate-y-0.5"
       >
         <svg
@@ -70,7 +72,7 @@ export function UserBar() {
           <path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4" />
           <path d="M16 8l4 4-4 4M20 12H9" />
         </svg>
-        Salir
+        {t("user.logout")}
       </button>
     </div>
   );

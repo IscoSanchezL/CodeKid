@@ -1,4 +1,6 @@
 /** Informe de avance de una clase: se calcula a partir de las filas de progreso, intentos y perfiles. */
+import "@/i18n";
+import { translate, translateText, type Lang } from "@/i18n/core";
 
 export type Challenge = { level: number; challenge: number; title: string; par: number };
 export type StudentLite = { id: string; name: string };
@@ -142,13 +144,13 @@ export function buildReport(
 }
 
 /** «Hoy», «Ayer», «Hace 3 días»… */
-export function activityLabel(date: Date | null, now: Date = new Date()): string {
-  if (!date) return "Sin actividad";
+export function activityLabel(date: Date | null, now: Date = new Date(), lang: Lang = "es"): string {
+  if (!date) return translate(lang, "r.never");
   const d = daysBetween(date, now);
-  if (d <= 0) return "Hoy";
-  if (d === 1) return "Ayer";
-  if (d < 7) return `Hace ${d} días`;
-  return date.toLocaleDateString("es", { day: "2-digit", month: "2-digit" });
+  if (d <= 0) return translate(lang, "r.today");
+  if (d === 1) return translate(lang, "r.yesterday");
+  if (d < 7) return translate(lang, "r.daysAgo", { n: d });
+  return date.toLocaleDateString(lang === "en" ? "en-GB" : "es", { day: "2-digit", month: "2-digit" });
 }
 
 const csvCell = (v: string | number) => {
@@ -157,18 +159,19 @@ const csvCell = (v: string | number) => {
 };
 
 /** Informe en CSV (separado por comas, con una columna por reto) para abrir en Excel o Sheets. */
-export function toCsv(rows: StudentReport[], catalog: Challenge[], now: Date = new Date()): string {
+export function toCsv(rows: StudentReport[], catalog: Challenge[], now: Date = new Date(), lang: Lang = "es"): string {
+  const tr = (key: string, vars?: Record<string, string | number>) => translate(lang, key, vars);
   const head = [
-    "Alumno",
-    "Estrellas",
-    "Retos completados",
-    "Avance %",
-    "Monedas",
-    "Racha (días)",
-    "Intentos fallidos",
-    "Última actividad",
-    "Necesita ayuda",
-    ...catalog.map((c) => `Reto ${c.level}-${c.challenge} (estrellas)`),
+    tr("r.csv.student"),
+    tr("r.csv.stars"),
+    tr("r.csv.done"),
+    tr("r.csv.pct"),
+    tr("r.csv.coins"),
+    tr("r.csv.streak"),
+    tr("r.csv.fails"),
+    tr("r.csv.last"),
+    tr("r.csv.help"),
+    ...catalog.map((c) => tr("r.csv.challenge", { id: `${c.level}-${c.challenge}` })),
   ];
   const lines = rows.map((r) =>
     [
@@ -179,8 +182,8 @@ export function toCsv(rows: StudentReport[], catalog: Challenge[], now: Date = n
       r.coins,
       r.streak,
       r.failures,
-      activityLabel(r.lastActivity, now),
-      r.help ?? "",
+      activityLabel(r.lastActivity, now, lang),
+      r.help ? translateText(lang, r.help) : "",
       ...catalog.map((c) => {
         const cell = r.cells[cellKey(c.level, c.challenge)];
         return cell.done ? cell.stars : "";

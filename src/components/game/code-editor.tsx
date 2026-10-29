@@ -2,6 +2,8 @@
 
 import { useRef } from "react";
 import type { Lang } from "@/lib/code-parser";
+import { NAMES } from "@/lib/code-names";
+import { useLang, useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -14,36 +16,40 @@ type Props = {
   disabled: boolean;
 };
 
-const SNIPPETS: Record<Lang, { label: string; text: string }[]> = {
-  js: [
-    { label: "avanzar()", text: "avanzar();\n" },
-    { label: "girarDerecha()", text: "girarDerecha();\n" },
-    { label: "girarIzquierda()", text: "girarIzquierda();\n" },
-    { label: "for", text: "for (let i = 0; i < 3; i++) {\n  \n}\n" },
-    { label: "while", text: "while (hayCaminoLibre()) {\n  avanzar();\n}\n" },
-    { label: "if", text: "if (hayPared()) {\n  girarDerecha();\n}\n" },
-    { label: "hayPared()", text: "hayPared()" },
-    { label: "hayCaminoLibre()", text: "hayCaminoLibre()" },
-    { label: "hayMoneda()", text: "hayMoneda()" },
-    { label: "esLaMeta()", text: "esLaMeta()" },
-    { label: "function", text: "function bloqueA() {\n  \n}\n" },
-    { label: "pasos", text: "let pasos = 1;\n" },
-  ],
-  python: [
-    { label: "avanzar()", text: "avanzar()\n" },
-    { label: "girar_derecha()", text: "girar_derecha()\n" },
-    { label: "girar_izquierda()", text: "girar_izquierda()\n" },
+/** Atajos para insertar instrucciones, con los nombres del idioma activo. */
+function snippets(lang: Lang, api: "es" | "en"): { label: string; text: string }[] {
+  const n = NAMES[lang][api];
+  const { wall, free, coin, goal } = n.atoms;
+  if (lang === "js")
+    return [
+      { label: `${n.move}()`, text: `${n.move}();\n` },
+      { label: `${n.right}()`, text: `${n.right}();\n` },
+      { label: `${n.left}()`, text: `${n.left}();\n` },
+      { label: "for", text: "for (let i = 0; i < 3; i++) {\n  \n}\n" },
+      { label: "while", text: `while (${free}()) {\n  ${n.move}();\n}\n` },
+      { label: "if", text: `if (${wall}()) {\n  ${n.right}();\n}\n` },
+      { label: `${wall}()`, text: `${wall}()` },
+      { label: `${free}()`, text: `${free}()` },
+      { label: `${coin}()`, text: `${coin}()` },
+      { label: `${goal}()`, text: `${goal}()` },
+      { label: "function", text: `function ${n.block("A")}() {\n  \n}\n` },
+      { label: n.steps, text: `let ${n.steps} = 1;\n` },
+    ];
+  return [
+    { label: `${n.move}()`, text: `${n.move}()\n` },
+    { label: `${n.right}()`, text: `${n.right}()\n` },
+    { label: `${n.left}()`, text: `${n.left}()\n` },
     { label: "for", text: "for _ in range(3):\n    \n" },
-    { label: "while", text: "while hay_camino_libre():\n    avanzar()\n" },
-    { label: "if", text: "if hay_pared():\n    girar_derecha()\n" },
-    { label: "hay_pared()", text: "hay_pared()" },
-    { label: "hay_camino_libre()", text: "hay_camino_libre()" },
-    { label: "hay_moneda()", text: "hay_moneda()" },
-    { label: "es_la_meta()", text: "es_la_meta()" },
-    { label: "def", text: "def bloque_a():\n    \n" },
-    { label: "pasos", text: "pasos = 1\n" },
-  ],
-};
+    { label: "while", text: `while ${free}():\n    ${n.move}()\n` },
+    { label: "if", text: `if ${wall}():\n    ${n.right}()\n` },
+    { label: `${wall}()`, text: `${wall}()` },
+    { label: `${free}()`, text: `${free}()` },
+    { label: `${coin}()`, text: `${coin}()` },
+    { label: `${goal}()`, text: `${goal}()` },
+    { label: "def", text: `def ${n.block("A")}():\n    \n` },
+    { label: n.steps, text: `${n.steps} = 1\n` },
+  ];
+}
 
 /** Editor de código con números de línea, atajos para insertar instrucciones y aviso de errores. */
 export function CodeEditor({
@@ -55,6 +61,8 @@ export function CodeEditor({
   runningLine,
   disabled,
 }: Props) {
+  const t = useT();
+  const api = useLang();
   const area = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLDivElement>(null);
   const lines = Math.max(value.split("\n").length, 6);
@@ -88,7 +96,7 @@ export function CodeEditor({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div
           role="tablist"
-          aria-label="Lenguaje"
+          aria-label={t("code.language")}
           className="flex overflow-hidden rounded-lg border border-white/15"
         >
           {(["js", "python"] as Lang[]).map((l) => (
@@ -110,8 +118,8 @@ export function CodeEditor({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-1" aria-label="Insertar instrucción">
-          {SNIPPETS[lang].map((s) => (
+        <div className="flex flex-wrap gap-1" aria-label={t("code.insert")}>
+          {snippets(lang, api).map((s) => (
             <button
               key={s.label}
               type="button"
@@ -167,7 +175,7 @@ export function CodeEditor({
             spellCheck={false}
             autoCapitalize="off"
             autoCorrect="off"
-            aria-label={`Código en ${lang === "js" ? "JavaScript" : "Python"}`}
+            aria-label={t("code.aria", { lang: lang === "js" ? "JavaScript" : "Python" })}
             rows={lines}
             onChange={(e) => onChange(e.target.value)}
             onScroll={(e) => {
@@ -189,7 +197,7 @@ export function CodeEditor({
           role="alert"
           className="rounded-lg bg-red-500/15 px-3 py-2 text-sm font-semibold text-red-300"
         >
-          Línea {error.line}: {error.message}
+          {t("code.error", { line: error.line, message: error.message })}
         </p>
       )}
     </div>

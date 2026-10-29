@@ -21,6 +21,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { AdminPanel } from "@/components/admin/admin-panel";
 import { ProgressPanel } from "./progress-panel";
+import { translateText, TX, useLang, useT } from "@/i18n";
 
 type Classroom = {
   id: string;
@@ -42,6 +43,8 @@ function classError(err: { code?: string; message?: string } | null): string {
 
 export function TeacherDashboard() {
   const router = useRouter();
+  const t = useT();
+  const lang = useLang();
   const [me, setMe] = useState<Me | null>(null);
   const [classes, setClasses] = useState<Classroom[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -215,7 +218,9 @@ export function TeacherDashboard() {
       setNames("");
       if (r.failed.length)
         setError(
-          `No se pudo añadir: ${r.failed.map((f) => `${f.name || "(vacío)"} (${f.error})`).join(", ")}`,
+          t("t.err.addFailed", {
+            list: r.failed.map((f) => `${f.name || t("t.empty")} (${translateText(lang, f.error)})`).join(", "),
+          }),
         );
       await loadStudents(current.id);
     } catch (err) {
@@ -237,8 +242,8 @@ export function TeacherDashboard() {
       });
       setNotice(
         r.pin
-          ? `Nuevo PIN de ${s.name}: ${r.pin}. Anótalo, no se vuelve a mostrar.`
-          : `${s.name} ya no necesita PIN.`,
+          ? t("t.notice.newPin", { name: s.name, pin: r.pin })
+          : t("t.notice.noPin", { name: s.name }),
       );
       await loadStudents(current.id);
     } catch (err) {
@@ -251,7 +256,7 @@ export function TeacherDashboard() {
   async function remove(s: Student) {
     if (
       !current ||
-      !window.confirm(`¿Eliminar a ${s.name}? Se borrará también su progreso.`)
+      !window.confirm(t("t.confirmRemove", { name: s.name }))
     )
       return;
     setError(null);
@@ -273,14 +278,14 @@ export function TeacherDashboard() {
     router.refresh();
   }
 
-  if (!me) return <p className="py-20 text-center text-muted">Cargando…</p>;
+  if (!me) return <p className="py-20 text-center text-muted">{t("t.loading")}</p>;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
       <aside className="flex flex-col gap-4">
         <Card className="p-4">
           <p className="text-sm text-muted">
-            Sesión de {me.role === "admin" ? "super administrador" : "docente"}
+            {t("t.session", { role: me.role === "admin" ? t("t.roleAdmin") : t("t.roleTeacher") })}
           </p>
           <p className="font-bold">{me.name}</p>
           <button
@@ -288,21 +293,21 @@ export function TeacherDashboard() {
             onClick={signOut}
             className="mt-2 text-sm font-medium text-danger"
           >
-            Cerrar sesión
+            {t("t.logout")}
           </button>
           <Link
             href="/actualizar-clave"
             className="mt-2 block text-sm font-medium text-brand"
           >
-            Cambiar mi contraseña
+            {t("t.changePass")}
           </Link>
 
           {me.role === "admin" && (
             <div className="mt-3 grid gap-1 border-t border-border pt-3">
               {(
                 [
-                  ["admin", "🛡️ Administración"],
-                  ["classes", "🏫 Mis clases"],
+                  ["admin", t("t.viewAdmin")],
+                  ["classes", t("t.viewClasses")],
                 ] as const
               ).map(([id, label]) => (
                 <button
@@ -320,7 +325,7 @@ export function TeacherDashboard() {
         </Card>
 
         <Card className={`p-4 ${view === "admin" ? "hidden" : ""}`}>
-          <h2 className="mb-3 font-bold">Mis clases</h2>
+          <h2 className="mb-3 font-bold">{t("t.myClasses")}</h2>
           <ul className="flex flex-col gap-1">
             {classes.map((c) => (
               <li key={c.id}>
@@ -338,7 +343,7 @@ export function TeacherDashboard() {
               </li>
             ))}
             {classes.length === 0 && (
-              <li className="text-sm text-muted">Aún no tienes clases.</li>
+              <li className="text-sm text-muted">{t("t.noClasses")}</li>
             )}
           </ul>
 
@@ -346,16 +351,16 @@ export function TeacherDashboard() {
             onSubmit={createClass}
             className="mt-4 flex flex-col gap-3 border-t border-border pt-4"
           >
-            <h3 className="text-sm font-bold">Nueva clase</h3>
+            <h3 className="text-sm font-bold">{t("t.newClass")}</h3>
             <Input
-              label="Nombre (p. ej. 1A)"
+              label={t("t.className")}
               name="className"
               value={newName}
               onChange={(e) => onNewName(e.target.value)}
               placeholder="1A"
             />
             <Input
-              label="Código de la clase"
+              label={t("t.classCode")}
               name="classCode"
               value={newCode}
               onChange={(e) => {
@@ -373,11 +378,11 @@ export function TeacherDashboard() {
                 onChange={(e) => setNewUsePassword(e.target.checked)}
                 className="h-4 w-4"
               />
-              Pedir una clave de clase
+              {t("t.askPassword")}
             </label>
             {newUsePassword && (
               <Input
-                label="Clave de la clase"
+                label={t("t.classPassword")}
                 name="classPassword"
                 value={newPassword}
                 onChange={(e) => {
@@ -394,7 +399,7 @@ export function TeacherDashboard() {
               size="sm"
               disabled={busy || newName.trim().length < 2}
             >
-              Crear clase
+              {t("t.createClass")}
             </Button>
           </form>
         </Card>
@@ -416,7 +421,7 @@ export function TeacherDashboard() {
                 role="alert"
                 className="rounded-xl bg-danger/10 p-3 text-sm font-medium text-danger"
               >
-                {error}
+                <TX text={error} />
               </p>
             )}
             {notice && (
@@ -424,24 +429,24 @@ export function TeacherDashboard() {
                 role="status"
                 className="rounded-xl bg-success/10 p-3 text-sm font-medium text-success"
               >
-                {notice}
+                <TX text={notice} />
               </p>
             )}
 
             {!current ? (
               <Card className="text-center text-muted">
-                Crea tu primera clase para obtener un código para tus alumnos.
+                {t("t.firstClass")}
               </Card>
             ) : (
               <>
                 <Card>
                   <p className="text-sm text-muted">
-                    Así entran tus alumnos a «{current.name}»
+                    {t("t.howEnter", { name: current.name })}
                   </p>
                   <div className="mt-2 grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                        1. Código de clase
+                        {t("t.step1")}
                       </p>
                       <p className="font-mono text-4xl font-extrabold tracking-[0.15em] text-brand">
                         {current.join_code}
@@ -449,7 +454,7 @@ export function TeacherDashboard() {
                     </div>
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                        2. Clave
+                        {t("t.step2")}
                       </p>
                       <p className="font-mono text-4xl font-extrabold tracking-[0.15em]">
                         {current.class_password ?? "—"}
@@ -457,12 +462,12 @@ export function TeacherDashboard() {
                     </div>
                   </div>
                   <p className="mt-3 text-sm text-muted">
-                    En{" "}
+                    {t("t.at")}
                     <Link href="/clase" className="font-semibold text-brand">
                       /clase
-                    </Link>{" "}
-                    escriben el código, tocan su nombre
-                    {current.class_password ? " y escriben la clave" : ""}.
+                    </Link>
+                    {t("t.atEnd")}
+                    {current.class_password ? t("t.andPassword") : ""}.
                   </p>
 
                   <form
@@ -470,7 +475,7 @@ export function TeacherDashboard() {
                     className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
                   >
                     <Input
-                      label="Cambiar código"
+                      label={t("t.changeCode")}
                       name="editCode"
                       value={editCode}
                       onChange={(e) => setEditCode(cleanCode(e.target.value))}
@@ -479,7 +484,7 @@ export function TeacherDashboard() {
                     />
                     <div className="flex flex-col gap-1.5">
                       <Input
-                        label="Cambiar clave"
+                        label={t("t.changePassword")}
                         name="editPassword"
                         value={editPassword}
                         disabled={!editUsePassword}
@@ -496,27 +501,27 @@ export function TeacherDashboard() {
                           onChange={(e) => setEditUsePassword(e.target.checked)}
                           className="h-4 w-4"
                         />
-                        Pedir clave
+                        {t("t.askPasswordShort")}
                       </label>
                     </div>
                     <Button
                       type="submit"
                       disabled={busy || editCode.length < 4}
                     >
-                      Guardar
+                      {t("t.save")}
                     </Button>
                   </form>
                 </Card>
 
                 <div
                   role="tablist"
-                  aria-label="Secciones de la clase"
+                  aria-label={t("t.sections")}
                   className="flex gap-2"
                 >
                   {(
                     [
-                      ["progress", "📊 Progreso"],
-                      ["students", "👥 Alumnos y acceso"],
+                      ["progress", t("t.tabProgress")],
+                      ["students", t("t.tabStudents")],
                     ] as const
                   ).map(([id, label]) => (
                     <button
@@ -543,10 +548,9 @@ export function TeacherDashboard() {
                 {tab === "students" && (
                   <>
                     <Card>
-                      <h2 className="font-bold">Añadir alumnos</h2>
+                      <h2 className="font-bold">{t("t.addStudents")}</h2>
                       <p className="mt-1 text-sm text-muted">
-                        Un nombre por línea. Usa solo el nombre de pila o un
-                        apodo: no pedimos correo ni datos personales.
+                        {t("t.addHelp")}
                       </p>
                       <form
                         onSubmit={addStudents}
@@ -556,8 +560,8 @@ export function TeacherDashboard() {
                           value={names}
                           onChange={(e) => setNames(e.target.value)}
                           rows={5}
-                          aria-label="Nombres de los alumnos"
-                          placeholder={"Ana\nLuis\nSofía"}
+                          aria-label={t("t.namesAria")}
+                          placeholder={t("t.namesPlaceholder")}
                           className="rounded-xl border border-border bg-surface p-3 text-base"
                         />
                         <label className="flex items-center gap-2 text-sm font-medium">
@@ -567,19 +571,17 @@ export function TeacherDashboard() {
                             onChange={(e) => setRequirePin(e.target.checked)}
                             className="h-4 w-4"
                           />
-                          Además, un PIN individual de 4 números por alumno (se
-                          genera solo)
+                          {t("t.requirePin")}
                         </label>
                         <Button type="submit" disabled={busy}>
-                          {busy ? "Añadiendo…" : "Añadir a la clase"}
+                          {busy ? t("t.adding") : t("t.addToClass")}
                         </Button>
                       </form>
 
                       {lastCreated.some((s) => s.pin) && (
                         <div className="mt-4 rounded-xl border-2 border-dashed border-warn p-3">
                           <p className="text-sm font-bold">
-                            PINs generados: anótalos o imprímelos, no se vuelven
-                            a mostrar.
+                            {t("t.pinsGenerated")}
                           </p>
                           <ul className="mt-2 grid gap-1 sm:grid-cols-2">
                             {lastCreated.map((s) => (
@@ -602,7 +604,7 @@ export function TeacherDashboard() {
                             className="mt-3 print:hidden"
                             onClick={() => window.print()}
                           >
-                            Imprimir
+                            {t("t.print")}
                           </Button>
                         </div>
                       )}
@@ -610,11 +612,11 @@ export function TeacherDashboard() {
 
                     <Card>
                       <h2 className="mb-3 font-bold">
-                        Alumnos ({students.length})
+                        {t("t.studentsN", { n: students.length })}
                       </h2>
                       {students.length === 0 ? (
                         <p className="text-sm text-muted">
-                          Todavía no hay alumnos en esta clase.
+                          {t("t.noStudents")}
                         </p>
                       ) : (
                         <ul className="divide-y divide-border">
@@ -633,19 +635,19 @@ export function TeacherDashboard() {
                               </span>
                               <span
                                 className="text-sm font-bold text-warn"
-                                title="Monedas"
+                                title={t("t.coins")}
                               >
                                 🪙 {s.coins ?? 0}
                               </span>
                               <span className="text-xs text-muted">
-                                {s.hasPin ? "🔒 con PIN" : "sin PIN"}
+                                {s.hasPin ? t("t.withPin") : t("t.noPin")}
                               </span>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => resetPin(s, "random")}
                               >
-                                {s.hasPin ? "Nuevo PIN" : "Poner PIN"}
+                                {s.hasPin ? t("t.newPin") : t("t.setPin")}
                               </Button>
                               {s.hasPin && (
                                 <Button
@@ -653,7 +655,7 @@ export function TeacherDashboard() {
                                   size="sm"
                                   onClick={() => resetPin(s, "none")}
                                 >
-                                  Quitar PIN
+                                  {t("t.removePin")}
                                 </Button>
                               )}
                               <Button
@@ -662,7 +664,7 @@ export function TeacherDashboard() {
                                 className="text-danger"
                                 onClick={() => remove(s)}
                               >
-                                Eliminar
+                                {t("t.delete")}
                               </Button>
                             </li>
                           ))}

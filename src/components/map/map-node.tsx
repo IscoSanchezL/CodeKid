@@ -8,6 +8,7 @@ import { useMapState } from "./use-current-level";
 import { PASS_STARS, maxStars } from "@/lib/unlock";
 import { ADV_OFFSET } from "@/lib/levels";
 import { PLAYABLE_LEVELS } from "@/engine/levels";
+import { useT } from "@/i18n";
 
 type Props = {
   level: number;
@@ -23,6 +24,7 @@ const RINGED = new Set([3, 6, 9]);
 
 /** Planeta de un nivel: esfera con atmósfera, bandas, cráteres y su insignia. Se coloca en % sobre el mapa (viewBox 1000×700). */
 export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
+  const t = useT();
   const { current: here, done, unlocked, ready, stars } = useMapState();
   // «exists»: el nivel tiene retos. «open»: además el jugador ya lo desbloqueó (11 estrellas en el planeta anterior).
   const open =
@@ -184,7 +186,7 @@ export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
             <LevelStars level={level} />
           ) : (
             <span className="rounded-full border border-white/15 bg-black/40 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white/70">
-              {exists ? `🔒 Saca ${PASS_STARS}★ antes` : "Próximamente"}
+              {exists ? t("map.locked", { n: PASS_STARS }) : t("map.soon")}
             </span>
           )}
         </div>
@@ -210,8 +212,8 @@ export function MapNode({ level, title, icon, x, y, open: exists }: Props) {
       {showAdv && (
         <Link
           href={`/nivel/${advLevel}`}
-          aria-label={`Modo avanzado de ${title}: ${advStars} estrellas`}
-          title={`⚡ Modo avanzado · ${advStars}★`}
+          aria-label={t("map.advAria", { title, n: advStars })}
+          title={t("map.advTitle", { n: advStars })}
           className={`btn-gloss absolute -right-[2%] top-[2%] z-10 grid h-[clamp(26px,4.2cqw,44px)] w-[clamp(26px,4.2cqw,44px)] place-items-center rounded-full border-2 text-[clamp(12px,2cqw,22px)] shadow-[0_0_16px_rgba(255,120,240,0.8)] ${advDone ? "border-yellow-200 bg-gradient-to-b from-yellow-300 to-orange-400" : "border-fuchsia-200 bg-gradient-to-b from-fuchsia-500 to-indigo-600"}`}
         >
           <span aria-hidden>{advDone ? "🏅" : "⚡"}</span>

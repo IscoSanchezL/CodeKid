@@ -8,11 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { credentialsSchema, registerSchema } from "@/lib/validation";
 import { createClient } from "@/lib/supabase/client";
+import { TX, useT } from "@/i18n";
 
 type Mode = "login" | "registro";
 
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const isLogin = mode === "login";
@@ -81,21 +83,21 @@ export function AuthForm({ mode }: { mode: Mode }) {
   return (
     <Card>
       <h1 className="text-2xl font-extrabold">
-        {isLogin ? "Bienvenido de nuevo" : "Crea tu cuenta"}
+        {isLogin ? t("auth.welcome") : t("auth.create")}
       </h1>
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
         {!isLogin && (
-          <Input label="Nombre" name="name" autoComplete="nickname" required />
+          <Input label={t("auth.name")} name="name" autoComplete="nickname" required />
         )}
         <Input
-          label="Correo"
+          label={t("auth.email")}
           name="email"
           type="email"
           autoComplete="email"
           required
         />
         <Input
-          label="Contraseña"
+          label={t("auth.password")}
           name="password"
           type="password"
           autoComplete={isLogin ? "current-password" : "new-password"}
@@ -104,15 +106,15 @@ export function AuthForm({ mode }: { mode: Mode }) {
         />
         {!isLogin && (
           <label className="flex flex-col gap-1.5 text-sm font-medium">
-            Soy
+            {t("auth.iAm")}
             <select
               name="role"
               defaultValue="student"
               className="field h-11 rounded-xl border border-border bg-surface px-3 text-base"
             >
-              <option value="student">Estudiante</option>
-              <option value="teacher">Docente</option>
-              <option value="guardian">Madre, padre o tutor</option>
+              <option value="student">{t("auth.role.student")}</option>
+              <option value="teacher">{t("auth.role.teacher")}</option>
+              <option value="guardian">{t("auth.role.guardian")}</option>
             </select>
           </label>
         )}
@@ -121,25 +123,25 @@ export function AuthForm({ mode }: { mode: Mode }) {
             href="/recuperar"
             className="-mt-2 self-end text-sm font-semibold text-brand"
           >
-            ¿Olvidaste tu contraseña?
+            {t("auth.forgot")}
           </Link>
         )}
         {error && (
           <p role="alert" className="text-sm font-medium text-danger">
-            {error}
+            <TX text={error} />
           </p>
         )}
         <Button type="submit" disabled={loading}>
-          {loading ? "Un momento…" : isLogin ? "Entrar" : "Crear cuenta"}
+          {loading ? t("auth.wait") : isLogin ? t("auth.enter") : t("auth.createBtn")}
         </Button>
       </form>
       <p className="mt-5 text-center text-sm text-muted">
-        {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
+        {isLogin ? t("auth.noAccount") : t("auth.haveAccount")}
         <Link
           className="font-semibold text-brand"
           href={isLogin ? "/registro" : "/login"}
         >
-          {isLogin ? "Regístrate" : "Entra"}
+          {isLogin ? t("auth.signup") : t("auth.signin")}
         </Link>
       </p>
     </Card>
