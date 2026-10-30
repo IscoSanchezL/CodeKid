@@ -16,13 +16,15 @@ export function generateStaticParams(): Params[] {
   }));
 }
 
-export function generateMetadata({ params }: { params: Params }): Metadata {
-  const c = getChallenge(Number(params.nivel), Number(params.reto));
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
+  const { nivel, reto } = await params;
+  const c = getChallenge(Number(nivel), Number(reto));
   return { title: c ? `${c.title} · Nivel ${c.level}` : "Reto" };
 }
 
-export default function RetoPage({ params }: { params: Params }) {
-  const level = getChallenge(Number(params.nivel), Number(params.reto));
+export default async function RetoPage({ params }: { params: Promise<Params> }) {
+  const { nivel, reto } = await params;
+  const level = getChallenge(Number(nivel), Number(reto));
   if (!level) notFound();
 
   return (

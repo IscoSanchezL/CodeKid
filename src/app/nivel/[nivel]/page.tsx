@@ -21,13 +21,15 @@ export function generateStaticParams(): Params[] {
   return PLAYABLE_LEVELS.map((n) => ({ nivel: String(n) }));
 }
 
-export function generateMetadata({ params }: { params: Params }): Metadata {
-  const meta = levelMeta(Number(params.nivel));
+export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
+  const { nivel } = await params;
+  const meta = levelMeta(Number(nivel));
   return { title: meta ? `Nivel ${meta.id}: ${meta.title}` : "Nivel" };
 }
 
-export default function NivelPage({ params }: { params: Params }) {
-  const n = Number(params.nivel);
+export default async function NivelPage({ params }: { params: Promise<Params> }) {
+  const { nivel } = await params;
+  const n = Number(nivel);
   const meta = levelMeta(n);
   const list = challengesOf(n);
   if (!meta || list.length === 0) notFound();
